@@ -1,0 +1,59 @@
+<div class="min-h-screen bg-fondoOscuro text-white px-6 py-10 flex flex-col">
+    <div class="flex justify-between items-center mb-8 border-b border-gray-700 pb-4">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 rounded-full border border-white flex items-center justify-center overflow-hidden">
+                <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                        clip-rule="evenodd"></path>
+                </svg>
+            </div>
+            <div>
+                <h2 class="text-base font-semibold">Importaciones RS</h2>
+                <p class="text-turquesa text-xs">Administrador</p>
+            </div>
+        </div>
+        <svg width="30" height="20" viewBox="0 0 60 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M5 15 Q 12.5 5, 20 15 T 35 15 T 50 15 T 65 15" stroke="white" stroke-width="2" fill="none"
+                stroke-linecap="round" />
+            <path d="M5 25 Q 12.5 15, 20 25 T 35 25 T 50 25 T 65 25" stroke="white" stroke-width="2" fill="none"
+                stroke-linecap="round" />
+        </svg>
+    </div>
+
+    <h3 class="text-turquesa text-lg font-medium mb-4">Acceso Administrativo</h3>
+    <p class="text-xs font-light mb-8 text-gray-300 leading-relaxed">
+        Mi negocio al dia te comparte las opciones mas vitales<br><br>
+        para la administración de tu negocio
+    </p>
+
+    <div class="grid grid-cols-2 gap-6 mb-8">
+        <div class="flex flex-col items-center gap-3 cursor-pointer hover:scale-105 transition-transform"
+            routerLink="/caja">
+            <span class="text-xs text-center">Caja vender</span>
+            <div class="bg-white rounded-[2rem] w-full aspect-video flex items-center justify-center p-2">
+                <div class="w-10 h-10 bg-turquesa rounded-full flex items-center justify-center text-xl">💰</div>
+            </div>
+        </div>
+
+        <div class="flex flex-col items-center gap-3 cursor-pointer hover:scale-105 transition-transform"
+            routerLink="/inventario">
+            <span class="text-xs text-center">Gestionar Inventario</span>
+            <div class="bg-white rounded-[2rem] w-full aspect-video flex items-center justify-center p-2">
+                <div class="w-10 h-10 bg-turquesa rounded-full flex items-center justify-center text-xl">📦</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex flex-col items-center gap-3 w-1/2 mx-auto cursor-pointer hover:scale-105 transition-transform"
+        routerLink="/reportes">
+        <span class="text-xs text-center">Reportes y<br>Alertas</span>
+        <div class="bg-white rounded-[2rem] w-full aspect-square flex items-center justify-center p-2">
+            <div class="w-10 h-10 bg-turquesa rounded-full flex items-center justify-center text-xl">📊</div>
+        </div>
+    </div>
+
+    <div class="mt-auto pt-8 text-[10px] font-light text-gray-400 text-center leading-relaxed">
+        Recuerda este aplicativo es solo administrativo no generara factura, solo te permitira mantener un orden de lo
+        que sale y entra a tu negocio
+    </div>
+</div>

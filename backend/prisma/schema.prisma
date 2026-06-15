@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Negocio {
+  id        String   @id @default(uuid())
+  nombre    String
+  slug      String   @unique
+  plan      String   @default("MULTI")
+  creadoEn  DateTime @default(now()) @map("creado_en")
+  socios    Socio[]
+
+  @@map("negocios")
+}
+
+model Socio {
+  id        String     @id @default(uuid())
+  negocioId String     @map("negocio_id")
+  negocio   Negocio    @relation(fields: [negocioId], references: [id])
+  nombre    String
+  email     String     @unique
+  password  String
+  productos Producto[]
+  ventas    Venta[]
+
+  @@map("socios")
+}
+
+model Producto {
+  id          String         @id @default(uuid())
+  socioId     String         @map("socio_id")
+  socio       Socio          @relation(fields: [socioId], references: [id])
+  nombre      String
+  valor       Decimal
+  stock       Int            @default(0)
+  imagenUrl   String?        @map("imagen_url")
+  descripcion String?
+  qrCode      String?        @map("qr_code")
+  activo      Boolean        @default(true)
+  creadoEn    DateTime       @default(now()) @map("creado_en")
+  detalles    DetalleVenta[]
+  alertas     Alerta[]
+
+  @@map("productos")
+}
+
+model Venta {
+  id        String         @id @default(uuid())
+  socioId   String         @map("socio_id")
+  socio     Socio          @relation(fields: [socioId], references: [id])
+  total     Decimal
+  creadoEn  DateTime       @default(now()) @map("creado_en")
+  detalles  DetalleVenta[]
+
+  @@map("ventas")
+}
+
+model DetalleVenta {
+  id         String   @id @default(uuid())
+  ventaId    String   @map("venta_id")
+  productoId String   @map("producto_id")
+  cantidad   Int
+  precioUnit Decimal  @map("precio_unit")
+  venta      Venta    @relation(fields: [ventaId], references: [id])
+  producto   Producto @relation(fields: [productoId], references: [id])
+
+  @@map("detalle_ventas")
+}
+
+model Alerta {
+  id         String   @id @default(uuid())
+  productoId String   @map("producto_id")
+  mensaje    String
+  creadoEn   DateTime @default(now()) @map("creado_en")
+  producto   Producto @relation(fields: [productoId], references: [id])
+
+  @@map("alertas")
+}
+
+model SesionCaja {
+  id        String   @id @default(uuid())
+  creadoEn  DateTime @default(now()) @map("creado_en")
+  
+  @@map("sesiones_caja")
+}

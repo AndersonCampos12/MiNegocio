@@ -1,1 +1,58 @@
-<p>inventario works!</p>
+<div class="min-h-screen bg-fondoOscuro text-white flex flex-col pb-24 relative">
+
+    <div class="flex justify-between items-center p-6 border-b border-gray-800 sticky top-0 bg-fondoOscuro z-10">
+        <div class="flex items-center gap-4 cursor-pointer hover:text-turquesa transition-colors"
+            routerLink="/dashboard">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18">
+                </path>
+            </svg>
+            <h1 class="text-lg font-light tracking-wide">Inventario</h1>
+        </div>
+        <span class="text-turquesa text-sm font-semibold">Importaciones RS</span>
+    </div>
+
+    <div class="p-6 flex-1">
+        <h2 class="text-turquesa text-sm font-medium mb-6">Productos</h2>
+
+        <div class="flex flex-col gap-4">
+
+            @for (prod of productos; track prod.id) {
+            <div class="bg-white text-black rounded-xl p-3 flex gap-4 items-center shadow-lg">
+
+                <div
+                    class="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center text-2xl overflow-hidden shrink-0">
+                    @if (prod.imagenUrl) {
+                    <img [src]="'http://localhost:3000' + prod.imagenUrl" alt="Foto" class="w-full h-full object-cover">
+                    } @else {
+                    📦
+                    }
+                </div>
+
+                <div class="flex-1">
+                    <h3 class="font-semibold text-sm">{{ prod.nombre }}</h3>
+                    <p class="text-xs text-gray-500 mb-1">Valor: ${{ prod.valor }}</p>
+                    <p class="text-[11px] text-gray-400 leading-tight line-clamp-2">{{ prod.descripcion }}</p>
+                </div>
+                <div class="pr-2">
+                    <span class="bg-turquesa text-white px-3 py-1 rounded-full text-xs font-semibold">
+                        {{ prod.stock }} u
+                    </span>
+                </div>
+            </div>
+
+            } @empty {
+            <p class="text-center text-xs text-gray-500 my-8">No hay productos registrados en este negocio.</p>
+            }
+
+        </div>
+    </div>
+
+    <div class="fixed bottom-0 left-0 right-0 bg-fondoOscuro p-6 z-20 border-t border-gray-800">
+        <button
+            class="w-full bg-turquesa text-white font-semibold py-4 rounded-full text-sm tracking-wide hover:bg-opacity-80 transition-all active:scale-[0.98] shadow-lg"
+            routerLink="/crear-producto">
+            Crear Producto
+        </button>
+    </div>
+</div>

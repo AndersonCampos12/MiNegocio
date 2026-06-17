@@ -1,4 +1,4 @@
-import { prisma } from '../index';
+import { prisma } from '../config/database'; // O '../index' dependiendo de dónde exportes tu prisma
 
 export class ProductosService {
     async crearProducto(socioId: string, data: any) {
@@ -22,7 +22,7 @@ export class ProductosService {
                     negocioId: negocioId
                 }
             },
-            orderBy: { creadoEn: 'desc' }
+            orderBy: { creadoEn: 'desc' } // O el campo de fecha que tengas
         });
     }
 }

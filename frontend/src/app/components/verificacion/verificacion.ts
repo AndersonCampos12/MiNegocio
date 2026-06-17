@@ -1,9 +1,11 @@
 import { Component } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-verificacion',
-  imports: [],
+  standalone: true,
+  imports: [RouterLink],
   templateUrl: './verificacion.html',
-  styleUrl: './verificacion.css',
+  styleUrl: './verificacion.css'
 })
-export class Verificacion {}
+export class Verificacion { }

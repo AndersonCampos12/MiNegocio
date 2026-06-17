@@ -1,1 +1,49 @@
-<p>verificacion works!</p>
+<div class="min-h-screen bg-fondoOscuro flex flex-col items-center justify-center relative px-8">
+    <div class="absolute inset-0 pointer-events-none opacity-20 overflow-hidden">
+        <div class="absolute top-1/4 -left-10 w-[150%] h-[1px] bg-white rotate-[-15deg]"></div>
+        <div class="absolute bottom-1/4 -left-10 w-[150%] h-[1px] bg-white rotate-[-15deg]"></div>
+    </div>
+
+    <div class="z-10 w-full max-w-sm flex flex-col items-center">
+
+        <div class="flex items-center gap-4 mb-12">
+            <h2 class="text-white text-xl font-light tracking-wide">Ingresa tu codigo</h2>
+            <svg width="40" height="30" viewBox="0 0 60 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M5 15 Q 12.5 5, 20 15 T 35 15 T 50 15 T 65 15" stroke="white" stroke-width="3" fill="none"
+                    stroke-linecap="round" />
+                <path d="M5 25 Q 12.5 15, 20 25 T 35 25 T 50 25 T 65 25" stroke="white" stroke-width="3" fill="none"
+                    stroke-linecap="round" />
+            </svg>
+        </div>
+
+        <div class="flex gap-3 mb-10 w-full justify-center">
+            <input type="text" maxlength="1"
+                class="w-12 h-12 bg-white rounded-md text-center text-black text-xl font-bold outline-none focus:ring-2 focus:ring-turquesa">
+            <input type="text" maxlength="1"
+                class="w-12 h-12 bg-white rounded-md text-center text-black text-xl font-bold outline-none focus:ring-2 focus:ring-turquesa">
+            <input type="text" maxlength="1"
+                class="w-12 h-12 bg-white rounded-md text-center text-black text-xl font-bold outline-none focus:ring-2 focus:ring-turquesa">
+            <input type="text" maxlength="1"
+                class="w-12 h-12 bg-white rounded-md text-center text-black text-xl font-bold outline-none focus:ring-2 focus:ring-turquesa">
+            <input type="text" maxlength="1"
+                class="w-12 h-12 bg-white rounded-md text-center text-black text-xl font-bold outline-none focus:ring-2 focus:ring-turquesa">
+            <input type="text" maxlength="1"
+                class="w-12 h-12 bg-white rounded-md text-center text-black text-xl font-bold outline-none focus:ring-2 focus:ring-turquesa">
+        </div>
+
+        <p class="text-white font-light tracking-wide mb-6">codigo enviado</p>
+
+        <p class="text-gray-400 text-xs mb-6">Tienes 5 intentos</p>
+
+        <a href="javascript:void(0)"
+            class="text-turquesa text-sm font-semibold tracking-widest hover:text-white transition-colors mb-10">
+            Reenviar
+        </a>
+
+        <button routerLink="/login"
+            class="mt-8 text-white text-xs font-light border border-white px-6 py-2 rounded-full hover:bg-white hover:text-black transition-colors">
+            Validar y continuar al Login
+        </button>
+
+    </div>
+</div>

@@ -18,8 +18,19 @@
         <p>al poder de tu mano</p>
     </div>
 
-    <div class="w-full max-w-sm flex flex-col gap-6 z-10">
-        <button
+    @if (errorMsg) {
+    <div class="w-full bg-red-900/50 border border-red-500 p-3 rounded text-xs text-center text-red-200 z-10">
+        {{ errorMsg }}
+    </div>
+    }
+
+    <div class="w-full max-w-sm flex flex-col gap-4 z-10">
+        <input type="email" [(ngModel)]="email" placeholder="Correo electrónico"
+            class="w-full p-3 bg-white text-black rounded-sm outline-none text-sm">
+        <input type="password" [(ngModel)]="password" placeholder="Contraseña"
+            class="w-full p-3 bg-white text-black rounded-sm outline-none text-sm">
+
+        <button (click)="ejecutarLogin()"
             class="w-full bg-white text-black font-semibold py-4 rounded-sm text-sm tracking-widest hover:bg-gray-200 transition-colors">
             INICIAR SESIÓN
         </button>

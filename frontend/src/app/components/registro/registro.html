@@ -1,35 +1,52 @@
-<div class="min-h-screen bg-fondoOscuro flex flex-col items-center justify-center relative px-8">
+<div class="min-h-screen bg-fondoOscuro flex flex-col items-center justify-center relative px-8 py-10">
+
     <div class="absolute inset-0 pointer-events-none opacity-20 overflow-hidden">
         <div class="absolute top-1/4 -left-10 w-[150%] h-[1px] bg-white rotate-[-15deg]"></div>
         <div class="absolute bottom-1/4 -left-10 w-[150%] h-[1px] bg-white rotate-[-15deg]"></div>
     </div>
 
-    <svg class="mb-8 z-10" width="40" height="30" viewBox="0 0 60 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg class="mb-6 z-10" width="40" height="30" viewBox="0 0 60 40" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M5 15 Q 12.5 5, 20 15 T 35 15 T 50 15 T 65 15" stroke="white" stroke-width="3" fill="none"
             stroke-linecap="round" />
         <path d="M5 25 Q 12.5 15, 20 25 T 35 25 T 50 25 T 65 25" stroke="white" stroke-width="3" fill="none"
             stroke-linecap="round" />
     </svg>
 
-    <form class="w-full max-w-sm flex flex-col gap-4 z-10">
-        <input type="text" placeholder="Nombres completos"
-            class="w-full p-3 bg-white text-black rounded-sm outline-none text-sm">
-        <input type="tel" placeholder="Numero telefonico"
-            class="w-full p-3 bg-white text-black rounded-sm outline-none text-sm">
-        <input type="text" placeholder="Fecha de nacimiento: dd/mm/aaaa"
-            class="w-full p-3 bg-white text-black rounded-sm outline-none text-sm">
-        <input type="text" placeholder="Nombre de la empresa"
-            class="w-full p-3 bg-white text-black rounded-sm outline-none text-sm">
+    <h2 class="text-white text-lg font-light tracking-widest mb-6 z-10">CREAR CUENTA ADMINISTRATIVA</h2>
 
-        <label class="flex items-center gap-3 mt-4 cursor-pointer text-sm font-light">
-            <input type="checkbox" class="w-5 h-5 accent-turquesa cursor-pointer border-none rounded-sm">
-            acepta los terminos y <br> condiciones
+    <div *ngIf="errorMsg"
+        class="w-full max-w-sm bg-red-900/40 border border-red-500 text-red-200 p-3 rounded-sm text-xs text-center mb-4 z-10">
+        {{ errorMsg }}
+    </div>
+
+    <form class="w-full max-w-sm flex flex-col gap-3.5 z-10" (ngSubmit)="ejecutarRegistro()">
+
+        <input type="text" [(ngModel)]="adminNombre" name="adminNombre" placeholder="Nombres completos"
+            class="w-full p-3 bg-white text-black rounded-sm outline-none text-sm font-medium">
+
+        <input type="email" [(ngModel)]="email" name="email" placeholder="Correo electrónico institucional/personal"
+            class="w-full p-3 bg-white text-black rounded-sm outline-none text-sm font-medium">
+
+        <input type="password" [(ngModel)]="password" name="password" placeholder="Contraseña de acceso"
+            class="w-full p-3 bg-white text-black rounded-sm outline-none text-sm font-medium">
+
+        <input type="tel" [(ngModel)]="telefono" name="telefono" placeholder="Número telefónico"
+            class="w-full p-3 bg-white text-black rounded-sm outline-none text-sm font-medium">
+
+        <input type="text" [(ngModel)]="negocioNombre" name="negocioNombre"
+            placeholder="Nombre de la empresa (Importaciones RS)"
+            class="w-full p-3 bg-white text-black rounded-sm outline-none text-sm font-medium">
+
+        <label class="flex items-center gap-3 mt-2 cursor-pointer text-xs font-light text-gray-300">
+            <input type="checkbox" [(ngModel)]="aceptaTerminos" name="aceptaTerminos"
+                class="w-5 h-5 accent-turquesa cursor-pointer border-none rounded-sm">
+            <span>Acepto los términos y condiciones de uso administrativo</span>
         </label>
 
-        <div class="mt-8 text-center" routerLink="/verificacion">
-            <button type="button"
-                class="text-turquesa text-sm font-semibold tracking-widest hover:text-white transition-colors">
-                SIGUIENTE
+        <div class="mt-6 text-center">
+            <button type="submit" [disabled]="cargando"
+                class="text-turquesa text-sm font-semibold tracking-widest hover:text-white transition-colors disabled:opacity-50">
+                {{ cargando ? 'GUARDANDO...' : 'REGISTRAR Y CONTINUAR' }}
             </button>
         </div>
     </form>

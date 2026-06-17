@@ -1,1 +1,65 @@
-<p>caja works!</p>
+<div class="min-h-screen bg-fondoOscuro text-white flex flex-col pb-32 relative">
+    <div class="flex justify-between items-center p-6 border-b border-gray-800 sticky top-0 bg-fondoOscuro z-10">
+        <div class="flex items-center gap-4 cursor-pointer hover:text-turquesa transition-colors"
+            routerLink="/dashboard">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18">
+                </path>
+            </svg>
+            <h1 class="text-lg font-light tracking-wide">Caja / Vender</h1>
+        </div>
+        <span class="text-turquesa text-sm font-semibold">Importaciones RS</span>
+    </div>
+
+    <div class="p-6 flex-1">
+        <h2 class="text-turquesa text-sm font-medium mb-4">Acceso Administrativo</h2>
+        <p class="text-xs text-gray-400 mb-6">Seleccionar Productos:</p>
+
+        <div class="flex flex-col gap-4">
+            @for (prod of productos; track prod.id) {
+            <div class="bg-white text-black rounded-xl p-3 flex gap-4 items-center shadow-lg">
+                <div class="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center text-2xl">
+                    📦
+                </div>
+                <div class="flex-1">
+                    <h3 class="font-semibold text-sm text-gray-800">{{ prod.nombre }}</h3>
+                    <p class="text-xs text-gray-500 mb-1">Precio: ${{ prod.valor }}</p>
+                    <p class="text-[11px] text-gray-400 leading-tight">{{ prod.descripcion }}</p>
+                </div>
+                <div class="flex flex-col items-center justify-center pr-2">
+                    <span class="text-[10px] font-bold text-turquesa mb-1">Stock: {{ prod.stock }}</span>
+                    <button (click)="agregarAlCarrito(prod)"
+                        class="bg-turquesa text-white w-8 h-8 rounded-full flex items-center justify-center text-lg hover:bg-opacity-80 active:scale-95 shadow-md">
+                        +
+                    </button>
+                </div>
+            </div>
+            } @empty {
+            <p class="text-center text-xs text-gray-500 my-8">Cargando inventario...</p>
+            }
+        </div>
+
+        <div class="fixed bottom-0 left-0 right-0 bg-fondoOscuro border-t border-gray-800 p-6 z-20">
+            <div class="flex justify-between items-end mb-4 px-2">
+                <p class="text-xs text-gray-400 font-light">Carrito ({{ cantidadItems }} items)</p>
+                <p class="text-sm font-light">total: <span class="font-semibold text-turquesa">${{ totalVenta |
+                        number:'1.2-2' }}</span></p>
+            </div>
+            <button (click)="finalizarVenta()"
+                class="w-full bg-white text-black font-semibold py-4 rounded-sm text-sm tracking-widest hover:bg-gray-200 transition-colors">
+                Finalizar Ventas
+            </button>
+        </div>
+    </div>
+
+    <div class="fixed bottom-0 left-0 right-0 bg-fondoOscuro border-t border-gray-800 p-6 z-20">
+        <div class="flex justify-between items-end mb-4 px-2">
+            <p class="text-xs text-gray-400 font-light">Carrito (0 items)</p>
+            <p class="text-sm font-light">total: <span class="font-semibold">$ 0.00</span></p>
+        </div>
+        <button
+            class="w-full bg-white text-black font-semibold py-4 rounded-sm text-sm tracking-widest hover:bg-gray-200 transition-colors active:scale-[0.98]">
+            Finalizar Ventas
+        </button>
+    </div>
+</div>

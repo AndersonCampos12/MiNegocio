@@ -1,1 +1,67 @@
-<p>crear-producto works!</p>
+<div class="min-h-screen bg-fondoOscuro text-white flex flex-col relative">
+    <div class="flex justify-between items-center p-6 border-b border-gray-800 sticky top-0 bg-fondoOscuro z-10">
+        <div class="flex items-center gap-4 cursor-pointer hover:text-turquesa transition-colors"
+            routerLink="/inventario">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18">
+                </path>
+            </svg>
+            <h1 class="text-lg font-light tracking-wide">Crear producto</h1>
+        </div>
+        <span class="text-turquesa text-sm font-semibold">Importaciones RS</span>
+    </div>
+
+    <div class="p-6 flex-1">
+        <h2 class="text-turquesa text-sm font-medium mb-6">Detalles del producto</h2>
+
+        <form class="flex flex-col gap-5">
+            <div class="flex flex-col items-start gap-2 mb-2 relative">
+                <input type="file" accept="image/*" (change)="alSeleccionarImagen($event)"
+                    class="absolute inset-0 w-24 h-24 opacity-0 cursor-pointer z-10">
+                <div
+                    class="w-24 h-24 bg-white rounded-xl flex flex-col items-center justify-center text-black shadow-md overflow-hidden relative">
+                    @if (vistaPrevia) {
+                    <img [src]="vistaPrevia" class="w-full h-full object-cover">
+                    } @else {
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+                    </svg>
+                    <span class="text-[10px] font-medium text-center">Cargar<br>imagen</span>
+                    }
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] text-gray-300 font-light tracking-wider">NOMBRE DEL PRODUCTO</label>
+                <input type="text" [(ngModel)]="nombre" name="nombre" placeholder="Ej: Cuadernos"
+                    class="w-full p-3.5 bg-white text-black rounded-sm outline-none text-sm font-medium shadow-sm focus:ring-2 focus:ring-turquesa">
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] text-gray-300 font-light tracking-wider">VALOR</label>
+                <input type="number" [(ngModel)]="valor" name="valor" placeholder="$ 0"
+                    class="w-full p-3.5 bg-white text-black rounded-sm outline-none text-sm font-medium shadow-sm focus:ring-2 focus:ring-turquesa">
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] text-gray-300 font-light tracking-wider">STOCK</label>
+                <input type="number" [(ngModel)]="stock" name="stock" placeholder="Cantidad"
+                    class="w-full p-3.5 bg-white text-black rounded-sm outline-none text-sm font-medium shadow-sm focus:ring-2 focus:ring-turquesa">
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] text-gray-300 font-light tracking-wider">DESCRIPCIÓN DEL PRODUCTO</label>
+                <input type="text" [(ngModel)]="descripcion" name="descripcion" placeholder="Aqui va la descripcion"
+                    class="w-full p-3.5 bg-white text-black rounded-sm outline-none text-sm font-medium shadow-sm focus:ring-2 focus:ring-turquesa">
+            </div>
+
+            <div class="mt-8">
+                <button type="button" (click)="guardar()"
+                    class="w-full bg-turquesa text-white font-semibold py-4 rounded-full text-sm tracking-wide hover:bg-opacity-80 transition-all active:scale-[0.98] shadow-lg">
+                    Crear Producto
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

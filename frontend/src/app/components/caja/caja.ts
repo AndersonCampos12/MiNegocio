@@ -74,9 +74,10 @@ export class Caja implements OnInit, OnDestroy {
   finalizarVenta() {
     if (this.carrito.size === 0) return alert('El carrito está vacío');
 
-    const detalles = Array.from(this.carrito.values());
+    const detallesArray = Array.from(this.carrito.values());
 
-    this.ventasService.registrarVenta(detalles).subscribe({
+    // Le mandamos el arreglo directo para que TypeScript esté feliz
+    this.ventasService.registrarVenta(detallesArray).subscribe({
       next: () => {
         alert('¡Venta realizada con éxito!');
         this.carrito.clear();

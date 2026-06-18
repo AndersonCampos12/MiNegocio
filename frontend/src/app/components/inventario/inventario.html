@@ -16,7 +16,6 @@
         <h2 class="text-turquesa text-sm font-medium mb-6">Productos</h2>
 
         <div class="flex flex-col gap-4">
-
             @for (prod of productos; track prod.id) {
             <div class="bg-white text-black rounded-xl p-3 flex gap-4 items-center shadow-lg">
 
@@ -24,9 +23,7 @@
                     class="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center text-2xl overflow-hidden shrink-0">
                     @if (prod.imagenUrl) {
                     <img [src]="'http://localhost:3000' + prod.imagenUrl" alt="Foto" class="w-full h-full object-cover">
-                    } @else {
-                    📦
-                    }
+                    } @else { 📦 }
                 </div>
 
                 <div class="flex-1">
@@ -34,17 +31,27 @@
                     <p class="text-xs text-gray-500 mb-1">Valor: ${{ prod.valor }}</p>
                     <p class="text-[11px] text-gray-400 leading-tight line-clamp-2">{{ prod.descripcion }}</p>
                 </div>
-                <div class="pr-2">
-                    <span class="bg-turquesa text-white px-3 py-1 rounded-full text-xs font-semibold">
+
+                <div class="pr-2 text-center">
+                    <span
+                        class="bg-turquesa text-white px-3 py-1 rounded-full text-[10px] font-semibold inline-block mb-2">
                         {{ prod.stock }} u
                     </span>
+                    <div class="flex gap-2 justify-center mt-1">
+                        <button (click)="abrirModal(prod)"
+                            class="bg-gray-100 p-1.5 rounded-md hover:bg-gray-200 active:scale-95 transition-all text-sm">
+                            ✏️
+                        </button>
+                        <button (click)="eliminarProducto(prod.id)"
+                            class="bg-red-50 p-1.5 rounded-md hover:bg-red-100 active:scale-95 transition-all text-sm">
+                            🗑️
+                        </button>
+                    </div>
                 </div>
             </div>
-
             } @empty {
             <p class="text-center text-xs text-gray-500 my-8">No hay productos registrados en este negocio.</p>
             }
-
         </div>
     </div>
 
@@ -55,4 +62,48 @@
             Crear Producto
         </button>
     </div>
+
+    @if (modalAbierto) {
+    <div class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6 backdrop-blur-sm">
+        <div class="bg-fondoOscuro border border-gray-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl">
+            <h3 class="text-turquesa text-lg font-medium mb-4">Editar Producto</h3>
+
+            <div class="flex flex-col gap-4 mb-6">
+                <div>
+                    <label class="text-[10px] text-gray-400 mb-1 block">NOMBRE DEL PRODUCTO</label>
+                    <input [(ngModel)]="productoEditando.nombre" type="text"
+                        class="w-full bg-transparent border-b border-gray-600 p-2 text-sm text-white focus:outline-none focus:border-turquesa transition-colors">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] text-gray-400 mb-1 block">PRECIO ($)</label>
+                        <input [(ngModel)]="productoEditando.valor" type="number"
+                            class="w-full bg-transparent border-b border-gray-600 p-2 text-sm text-white focus:outline-none focus:border-turquesa transition-colors">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-400 mb-1 block">STOCK ACTUAL</label>
+                        <input [(ngModel)]="productoEditando.stock" type="number"
+                            class="w-full bg-transparent border-b border-gray-600 p-2 text-sm text-white focus:outline-none focus:border-turquesa transition-colors">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-[10px] text-gray-400 mb-1 block">DESCRIPCIÓN</label>
+                    <textarea [(ngModel)]="productoEditando.descripcion" rows="2"
+                        class="w-full bg-transparent border-b border-gray-600 p-2 text-sm text-white focus:outline-none focus:border-turquesa transition-colors"></textarea>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button (click)="cerrarModal()"
+                    class="flex-1 border border-gray-600 text-gray-300 py-3 rounded-xl text-xs font-semibold hover:bg-gray-800 transition-colors">
+                    Cancelar
+                </button>
+                <button (click)="guardarCambios()"
+                    class="flex-1 bg-turquesa text-fondoOscuro py-3 rounded-xl text-xs font-bold hover:bg-opacity-90 transition-colors">
+                    Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+    }
 </div>

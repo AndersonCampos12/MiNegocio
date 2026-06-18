@@ -64,4 +64,42 @@ router.get('/', async (req, res) => {
     }
 });
 
+// Endpoint: PUT /api/productos/:id (Actualizar datos o stock)
+router.put('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { nombre, valor, stock, descripcion } = req.body;
+
+        const productoActualizado = await prisma.producto.update({
+            where: { id },
+            data: {
+                nombre,
+                valor: parseFloat(valor),
+                stock: parseInt(stock, 10),
+                descripcion
+            }
+        });
+        res.status(200).json(productoActualizado);
+    } catch (error) {
+        console.error('Error al actualizar:', error);
+        res.status(500).json({ mensaje: 'Error al actualizar el producto' });
+    }
+});
+
+// Endpoint: DELETE /api/productos/:id (Borrado Lógico)
+router.delete('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        // Solo cambiamos el estado a falso, no lo borramos de la base de datos
+        const productoEliminado = await prisma.producto.update({
+            where: { id },
+            data: { activo: false }
+        });
+        res.status(200).json({ mensaje: 'Producto descontinuado', productoEliminado });
+    } catch (error) {
+        console.error('Error al eliminar:', error);
+        res.status(500).json({ mensaje: 'Error al eliminar el producto' });
+    }
+});
+
 export default router;

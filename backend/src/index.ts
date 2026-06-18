@@ -1,4 +1,5 @@
 import express from 'express';
+import 'dotenv/config'; // Esto carga las variables ocultas antes de arrancar todo
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
@@ -9,6 +10,8 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import authRoutes from './routes/auth.routes';
 import { ventasRoutesFactory } from './routes/ventas.routes';
 import productosRoutes from './routes/productos.routes';
+import reportesRoutes from './routes/reportes.routes';
+import path from 'path';
 
 dotenv.config();
 
@@ -30,6 +33,8 @@ app.use(cors({ origin: process.env.FRONTEND_URL }));
 app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/productos', productosRoutes);
+app.use('/api/reportes', reportesRoutes);
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Configuración del servidor WebSocket
 export const io = new Server(httpServer, {

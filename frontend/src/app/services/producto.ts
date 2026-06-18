@@ -10,23 +10,26 @@ export class ProductoService {
 
     constructor(private http: HttpClient) { }
 
-    // 1. Método ajustado para usar el ID del socio
     obtenerProductos(): Observable<any> {
         const usuarioString = localStorage.getItem('usuario');
         let socioId = '';
-
         if (usuarioString) {
-            const usuario = JSON.parse(usuarioString);
-            // Usamos el 'id' del usuario, que sabemos con certeza que existe
-            socioId = usuario.id;
+            socioId = JSON.parse(usuarioString).id;
         }
-
-        // Le mandamos el socioId por la URL
         return this.http.get(`${this.apiUrl}?socioId=${socioId}`);
     }
 
-    // 2. Método para enviar la imagen y los textos
     crearProducto(formData: FormData): Observable<any> {
         return this.http.post(this.apiUrl, formData);
+    }
+
+    // NUEVO: Método para actualizar
+    actualizarProducto(id: string, data: any): Observable<any> {
+        return this.http.put(`${this.apiUrl}/${id}`, data);
+    }
+
+    // NUEVO: Método para hacer el borrado lógico
+    eliminarProducto(id: string): Observable<any> {
+        return this.http.delete(`${this.apiUrl}/${id}`);
     }
 }

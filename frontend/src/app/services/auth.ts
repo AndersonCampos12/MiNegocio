@@ -30,12 +30,12 @@ export class AuthService {
 
     // 3. Login con Google (OAuth)
     loginGoogle(tokenGoogle: string): Observable<any> {
+        // Enviamos el token de Google a tu ruta recién creada
         return this.http.post(`${this.apiUrl}/google`, { token: tokenGoogle }).pipe(
-            tap((respuesta: any) => {
-                if (respuesta.token) {
-                    localStorage.setItem('token', respuesta.token);
-                    localStorage.setItem('usuario', JSON.stringify(respuesta.socio));
-                }
+            // Usamos 'tap' para guardar el token en localStorage silenciosamente antes de que el componente reaccione
+            tap((res: any) => {
+                localStorage.setItem('token', res.token);
+                localStorage.setItem('usuario', JSON.stringify(res.usuario));
             })
         );
     }

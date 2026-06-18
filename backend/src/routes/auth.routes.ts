@@ -25,10 +25,12 @@ router.post('/login', async (req, res) => {
 
 router.post('/google', async (req, res) => {
     try {
-        const { token } = req.body; // Este es el token que nos mandará Angular
+        const { token } = req.body;
         const resultado = await authService.loginGoogle(token);
         res.status(200).json(resultado);
     } catch (error: any) {
+        // 👇 ESTA LÍNEA ES LA CLAVE 👇
+        console.error('🚨 ERROR FATAL EN OAUTH:', error.message, error);
         res.status(401).json({ mensaje: error.message });
     }
 });

@@ -6,12 +6,28 @@ datasource db {
   provider = "postgresql"
 }
 
+// NUEVO: Definimos los roles estrictos del sistema
+enum Rol {
+  SUPERADMIN     // <-- NUEVO ROL SUPREMO
+  ADMINISTRADOR
+  VENDEDOR
+  CAJERO
+  CLIENTE
+}
+
+enum EstadoNegocio {
+  PENDIENTE
+  ACTIVO
+  BLOQUEADO
+}
+
 model Negocio {
-  id        String   @id @default(uuid())
+  id        String        @id @default(uuid())
   nombre    String
-  slug      String   @unique
-  plan      String   @default("MULTI")
-  creadoEn  DateTime @default(now()) @map("creado_en")
+  slug      String        @unique
+  plan      String        @default("MULTI")
+  estado    EstadoNegocio @default(PENDIENTE) // NUEVO: Todo negocio nace pendiente
+  creadoEn  DateTime      @default(now()) @map("creado_en")
   socios    Socio[]
 
   @@map("negocios")
@@ -24,6 +40,7 @@ model Socio {
   nombre    String
   email     String     @unique
   password  String
+  rol       Rol        @default(CLIENTE) // NUEVO: Por defecto todos son clientes
   productos Producto[]
   ventas    Venta[]
 

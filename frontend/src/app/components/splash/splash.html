@@ -1,18 +1,19 @@
-<div class="min-h-screen bg-fondoOscuro flex flex-col items-center justify-center relative overflow-hidden cursor-pointer"
-    routerLink="/login">
-    <div class="absolute inset-0 pointer-events-none opacity-20">
-        <div class="absolute top-1/4 -left-10 w-[150%] h-[1px] bg-white rotate-[-15deg]"></div>
-        <div class="absolute bottom-1/4 -left-10 w-[150%] h-[1px] bg-white rotate-[-15deg]"></div>
+<div class="min-h-screen bg-gray-950 flex flex-col items-center justify-center relative overflow-hidden">
+    <div
+        class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-600/20 rounded-full blur-[100px] pointer-events-none">
     </div>
 
-    <h1 class="text-white text-3xl font-light tracking-widest mb-6 text-center">
-        MI NEGOCIO AL DIA
-    </h1>
+    <div class="z-10 flex flex-col items-center animate-pulse">
+        <svg width="80" height="60" viewBox="0 0 60 40" fill="none" xmlns="http://www.w3.org/2000/svg" class="mb-6">
+            <path d="M5 15 Q 12.5 5, 20 15 T 35 15 T 50 15 T 65 15" stroke="#3B82F6" stroke-width="4" fill="none"
+                stroke-linecap="round" />
+            <path d="M5 25 Q 12.5 15, 20 25 T 35 25 T 50 25 T 65 25" stroke="#3B82F6" stroke-width="4" fill="none"
+                stroke-linecap="round" />
+        </svg>
 
-    <svg width="60" height="40" viewBox="0 0 60 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M5 15 Q 12.5 5, 20 15 T 35 15 T 50 15 T 65 15" stroke="white" stroke-width="3" fill="none"
-            stroke-linecap="round" />
-        <path d="M5 25 Q 12.5 15, 20 25 T 35 25 T 50 25 T 65 25" stroke="white" stroke-width="3" fill="none"
-            stroke-linecap="round" />
-    </svg>
+        <h1 class="text-white text-3xl font-bold tracking-widest text-center">
+            MI NEGOCIO
+        </h1>
+        <p class="text-blue-400 mt-2 text-sm font-light tracking-[0.2em]">AL DÍA</p>
+    </div>
 </div>

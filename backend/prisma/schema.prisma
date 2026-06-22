@@ -38,10 +38,12 @@ model Socio {
   negocioId String?
   negocio   Negocio?  @relation(fields: [negocioId], references: [id])
   nombre    String
+  cedula     String?   @unique // <- Añadir para el RUC/Cédula
   email     String    @unique
   password  String
   rol       Rol       @default(CLIENTE)
-  ventas    Venta[]   // El socio registra la venta (auditoría)
+  ventasRealizadas Venta[] @relation("VendedorFactura")
+  compras          Venta[] @relation("ClienteFactura")
   @@map("socios")
 }
 
@@ -64,13 +66,24 @@ model Producto {
 
 model Venta {
   id         String         @id @default(uuid())
-  negocioId  String         @map("negocio_id")  // ← CAMBIADO
+  negocioId  String         @map("negocio_id")
   negocio    Negocio        @relation(fields: [negocioId], references: [id])
-  socioId    String         @map("socio_id")    // quién registró la venta
-  socio      Socio          @relation(fields: [socioId], references: [id])
+  
+  // VENDEDOR / CAJERO
+  socioId    String         @map("socio_id")
+  socio      Socio          @relation("VendedorFactura", fields: [socioId], references: [id])
+  
+  // CLIENTE
+  clienteId  String?        @map("cliente_id")
+  cliente    Socio?         @relation("ClienteFactura", fields: [clienteId], references: [id])
+
+  subtotal   Decimal        @default(0)
+  impuestos  Decimal        @default(0)
   total      Decimal
+  
   creadoEn   DateTime       @default(now()) @map("creado_en")
   detalles   DetalleVenta[]
+
   @@map("ventas")
 }
 

@@ -96,4 +96,10 @@ export class Inventario implements OnInit {
       });
     }
   }
+
+  // En tu crear-producto.ts
+  esAdminOrSuperAdmin(): boolean {
+    const rol = this.authService.getRole();
+    return rol === 'ADMINISTRADOR' || rol === 'SUPERADMIN';
+  }
 }

@@ -100,83 +100,129 @@
             <!-- Carrito de compras -->
             <div class="lg:w-96">
                 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sticky top-24">
-                    <div class="flex items-center gap-2 mb-6">
-                        <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
-                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="font-semibold text-gray-800">Carrito de Ventas</h3>
-                            <p class="text-xs text-gray-500">{{ cantidadItems }} producto(s)</p>
-                        </div>
-                    </div>
 
-                    @if (carrito.size === 0) {
-                    <div class="text-center py-8">
-                        <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor"
-                            viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                        </svg>
-                        <p class="text-sm text-gray-500">El carrito está vacío</p>
-                        <p class="text-xs text-gray-400 mt-1">Agrega productos para comenzar</p>
-                    </div>
-                    } @else {
-                    <!-- Lista de items en carrito -->
-                    <div class="space-y-3 mb-6 max-h-96 overflow-y-auto">
-                        @for (item of carrito.values(); track item.productoId) {
-                        <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-gray-800 truncate">{{ item.nombre }}</p>
-                                <p class="text-xs text-gray-500">${{ item.precioUnit | number:'1.2-2' }} x {{
-                                    item.cantidad }}</p>
+                    <div class="mb-6 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                        <h3 class="text-sm font-semibold text-gray-800 mb-3">Datos del Cliente</h3>
+
+                        @if (!clienteSeleccionado) {
+                        <div class="flex gap-2 relative">
+                            <div class="flex-1 relative">
+                                <input type="text" [formControl]="buscadorCliente"
+                                    placeholder="Buscar por cédula o nombre..."
+                                    class="w-full text-sm text-gray-900 rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500">
+
+                                @if (resultadosClientes.length > 0) {
+                                <div
+                                    class="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                    @for (cliente of resultadosClientes; track cliente.id) {
+                                    <div (click)="seleccionarCliente(cliente)"
+                                        class="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-0">
+                                        <p class="text-sm font-medium text-gray-800">{{ cliente.nombre }}</p>
+                                        <p class="text-xs text-gray-500">CI/RUC: {{ cliente.cedula }}</p>
+                                    </div>
+                                    }
+                                </div>
+                                }
                             </div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-sm font-semibold text-blue-600 whitespace-nowrap">
-                                    ${{ item.cantidad * item.precioUnit | number:'1.2-2' }}
-                                </span>
-                                <button (click)="removerDelCarrito(item.productoId)"
-                                    class="w-6 h-6 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-100 transition-colors">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                </button>
+                            <button (click)="abrirModalCliente()"
+                                class="px-3 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
+                                title="Nuevo Cliente">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 4v16m8-8H4" />
+                                </svg>
+                            </button>
+                        </div>
+                        } @else {
+                        <div
+                            class="flex justify-between items-center bg-white p-3 rounded-lg border border-green-200 shadow-sm">
+                            <div>
+                                <p class="text-sm font-bold text-gray-800">{{ clienteSeleccionado.nombre }}</p>
+                                <p class="text-xs text-gray-500">{{ clienteSeleccionado.cedula }} | {{
+                                    clienteSeleccionado.email }}</p>
                             </div>
+                            <button (click)="quitarCliente()" class="text-red-500 hover:text-red-700 p-1">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
                         </div>
                         }
                     </div>
 
-                    <!-- Totales -->
-                    <div class="border-t border-gray-100 pt-4 space-y-2">
+                    <div class="border-t border-gray-100 pt-4 space-y-2 mt-4">
                         <div class="flex justify-between items-center">
                             <span class="text-sm text-gray-600">Subtotal</span>
-                            <span class="text-sm font-medium text-gray-800">${{ totalVenta | number:'1.2-2' }}</span>
+                            <span class="text-sm font-medium text-gray-800">${{ subtotal | number:'1.2-2' }}</span>
                         </div>
                         <div class="flex justify-between items-center">
-                            <span class="text-sm text-gray-600">Productos</span>
-                            <span class="text-sm font-medium text-gray-800">{{ cantidadItems }}</span>
+                            <span class="text-sm text-gray-600">IVA (15%)</span>
+                            <span class="text-sm font-medium text-gray-800">${{ montoIva | number:'1.2-2' }}</span>
                         </div>
                         <div class="flex justify-between items-center pt-2 border-t border-gray-100">
-                            <span class="text-base font-semibold text-gray-800">Total</span>
+                            <span class="text-base font-semibold text-gray-800">Total a Pagar</span>
                             <span class="text-xl font-bold text-blue-600">${{ totalVenta | number:'1.2-2' }}</span>
                         </div>
                     </div>
 
-                    <!-- Botón finalizar -->
-                    <button (click)="finalizarVenta()"
-                        class="w-full mt-6 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold py-3.5 px-6 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all active:scale-[0.98] shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                    <button (click)="finalizarVenta()" [disabled]="carrito.size === 0 || !clienteSeleccionado"
+                        [class.opacity-50]="carrito.size === 0 || !clienteSeleccionado"
+                        class="w-full mt-6 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold py-3.5 px-6 rounded-xl hover:from-blue-700 transition-all shadow-lg flex items-center justify-center gap-2">
                         Finalizar Venta
                     </button>
-                    }
                 </div>
             </div>
+
+            @if (mostrarModalCliente) {
+            <div class="fixed inset-0 z-50 overflow-y-auto">
+                <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity"
+                    (click)="mostrarModalCliente = false"></div>
+
+                <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+                    <div
+                        class="relative bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-lg w-full">
+
+                        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                            <h3 class="text-lg font-bold text-gray-800 mb-4">Registrar Nuevo Cliente</h3>
+
+                            <form [formGroup]="clienteForm" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Cédula / RUC</label>
+                                    <input type="text" formControlName="cedula"
+                                        class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm placeholder-gray-400"
+                                        placeholder="Ej: 2350xxxxxx">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Nombre Completo</label>
+                                    <input type="text" formControlName="nombre"
+                                        class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm placeholder-gray-400"
+                                        placeholder="Ej: Juan Pérez">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Email</label>
+                                    <input type="email" formControlName="email"
+                                        class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm placeholder-gray-400"
+                                        placeholder="juan@correo.com">
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="bg-gray-50 px-4 py-3 sm:px-6 flex justify-end gap-2 border-t border-gray-100">
+                            <button type="button" (click)="mostrarModalCliente = false"
+                                class="w-full inline-flex justify-center rounded-xl border border-gray-300 px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:w-auto sm:text-sm">
+                                Cancelar
+                            </button>
+                            <button type="button" (click)="guardarNuevoCliente()" [disabled]="clienteForm.invalid"
+                                class="w-full inline-flex justify-center rounded-xl border border-transparent px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 disabled:opacity-50 sm:w-auto sm:text-sm">
+                                Guardar y Seleccionar
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            }
         </div>
     </main>
 </div>

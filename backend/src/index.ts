@@ -14,6 +14,7 @@ import productosRoutes from './routes/productos.routes';
 import reportesRoutes from './routes/reportes.routes';
 import negociosRoutes from './routes/negocios.routes';
 import usuariosRoutes from './routes/usuarios.routes';
+import clientesRoutes from './routes/clientes.routes';
 import path from 'path';
 
 dotenv.config();
@@ -33,6 +34,7 @@ app.use('/api/productos', productosRoutes);
 app.use('/api/reportes', reportesRoutes);
 app.use('/api/negocios', negociosRoutes);
 app.use('/api/usuarios', usuariosRoutes);
+app.use('/api/clientes', clientesRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // ==========================================

@@ -18,11 +18,20 @@ export class Dashboard implements OnInit {
 
   // Menú dinámico
   menuItems = [
-    { titulo: 'Caja', ruta: '/admin/caja', icono: 'caja', roles: ['SUPERADMIN', 'ADMINISTRADOR', 'CAJERO'] },
-    { titulo: 'Inventario', ruta: '/admin/inventario', icono: 'inventario', roles: ['SUPERADMIN', 'ADMINISTRADOR', 'VENDEDOR'] },
-    { titulo: 'Empresas', ruta: '/admin/negocios', icono: 'negocios', roles: ['SUPERADMIN'] },
-    { titulo: 'Reportes', ruta: '/admin/reportes', icono: 'reportes', roles: ['SUPERADMIN', 'ADMINISTRADOR'] },
+    // La CAJA es vital para VENDEDORES y CAJEROS
+    { titulo: 'Caja', ruta: '/admin/caja', icono: 'caja', roles: ['SUPERADMIN', 'ADMINISTRADOR', 'VENDEDOR', 'CAJERO'] },
+
+    // El INVENTARIO: Vendedores pueden ver (para consultas), Cajeros y Admin también
+    { titulo: 'Inventario', ruta: '/admin/inventario', icono: 'inventario', roles: ['SUPERADMIN', 'ADMINISTRADOR', 'VENDEDOR', 'CAJERO'] },
+
+    // USUARIOS: Solo admins
     { titulo: 'Usuarios', ruta: '/admin/usuarios', icono: 'usuarios', roles: ['SUPERADMIN', 'ADMINISTRADOR'] },
+
+    // EMPRESAS: Solo superadmin
+    { titulo: 'Empresas', ruta: '/admin/negocios', icono: 'negocios', roles: ['SUPERADMIN'] },
+
+    // REPORTES: Admin y Superadmin
+    { titulo: 'Reportes', ruta: '/admin/reportes', icono: 'reportes', roles: ['SUPERADMIN', 'ADMINISTRADOR'] },
   ];
 
   constructor(private authService: AuthService) { }
@@ -46,7 +55,9 @@ export class Dashboard implements OnInit {
 
   // Filtra los ítems del menú según el rol
   get menuPermitido() {
-    return this.menuItems.filter(item => item.roles.includes(this.rolActual || ''));
+    const rol = this.authService.getRole();
+    // El filtro debe comparar exactamente el rol contra el array roles del objeto
+    return this.menuItems.filter(item => item.roles.includes(rol || ''));
   }
 
   cerrarSesion(): void {

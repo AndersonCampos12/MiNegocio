@@ -26,8 +26,9 @@ export class VentasService {
         return new HttpHeaders().set('Authorization', `Bearer ${token}`);
     }
 
-    registrarVenta(detalles: any[]): Observable<any> {
-        return this.http.post(this.apiUrl, { detalles }, { headers: this.getHeaders() });
+    registrarVenta(payload: any) {
+        // Ajusta la URL de tu API según tu configuración ('http://localhost:3000/api/ventas' etc.)
+        return this.http.post(`${this.apiUrl}`, payload);
     }
 
     onStockActualizado(): Observable<any> {

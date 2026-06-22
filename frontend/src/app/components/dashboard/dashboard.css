@@ -1,0 +1,45 @@
+/* frontend/src/app/components/dashboard/dashboard.css */
+/* Animaciones suaves para las cards */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.grid>div {
+    animation: fadeInUp 0.5s ease-out forwards;
+}
+
+.grid>div:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.grid>div:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.grid>div:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+.grid>div:nth-child(4) {
+    animation-delay: 0.4s;
+}
+
+/* Mejora del hover en las cards */
+.group:hover .group-hover\:scale-110 {
+    transform: scale(1.1);
+}
+
+/* Transiciones suaves */
+* {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}

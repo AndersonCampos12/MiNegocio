@@ -3,7 +3,7 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
 
 // Extendemos la interfaz Request para poder inyectar los datos del socio autenticado
 export interface AuthRequest extends Request {
-    socio?: string | JwtPayload;
+    socio?: any; // Usamos any o una interfaz más detallada para incluir el rol
 }
 
 export const verificarToken = (req: AuthRequest, res: Response, next: NextFunction): void => {
@@ -21,4 +21,18 @@ export const verificarToken = (req: AuthRequest, res: Response, next: NextFuncti
     } catch (error) {
         res.status(403).json({ mensaje: 'Token inválido o expirado' });
     }
+};
+
+// NUEVO: Middleware para proteger rutas por Roles
+export const verificarRol = (rolesPermitidos: string[]) => {
+    return (req: AuthRequest, res: Response, next: NextFunction): void => {
+        const socio = req.socio;
+
+        if (!socio || !rolesPermitidos.includes(socio.rol)) {
+            res.status(403).json({ mensaje: 'Acceso denegado. No tienes los permisos necesarios.' });
+            return;
+        }
+
+        next();
+    };
 };

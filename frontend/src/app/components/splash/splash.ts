@@ -24,9 +24,9 @@ export class Splash implements OnInit {
 
     if (token) {
       // Opcional: Podrías decodificar el token para ver el rol y decidir la ruta
-      this.router.navigate(['/dashboard']);
+      this.router.navigate(['admin/dashboard']);
     } else {
-      this.router.navigate(['/login']);
+      this.router.navigate(['/admin/login']);
     }
   }
 }

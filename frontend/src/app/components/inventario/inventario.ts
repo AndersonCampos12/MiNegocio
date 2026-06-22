@@ -1,47 +1,70 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms'; // <-- IMPORTANTE PARA EL MODAL
+import { FormsModule } from '@angular/forms';
 import { ProductoService } from '../../services/producto';
+import { AdminLayout } from '../admin-layout/admin-layout';
+import { AuthService } from '../../services/auth';
 
 @Component({
   selector: 'app-inventario',
   standalone: true,
-  imports: [RouterLink, CommonModule, FormsModule], // <-- Agrégalo aquí también
+  imports: [RouterLink, CommonModule, FormsModule, AdminLayout],
   templateUrl: './inventario.html',
   styleUrl: './inventario.css'
 })
 export class Inventario implements OnInit {
   productos: any[] = [];
-
-  // Variables para el modal de edición
+  cargando = true;
   modalAbierto = false;
   productoEditando: any = null;
+  usuarioActual: any = null;
+  rolActual: string | null = null;
 
   constructor(
     private productoService: ProductoService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private authService: AuthService
   ) { }
 
   ngOnInit() {
+    this.cargarDatosUsuario();
     this.cargarInventario();
   }
 
+  cargarDatosUsuario() {
+    this.rolActual = this.authService.getRole();
+    const usuarioStr = localStorage.getItem('usuario');
+    if (usuarioStr) {
+      this.usuarioActual = JSON.parse(usuarioStr);
+    }
+  }
+
+  cerrarSesion(): void {
+    this.authService.logout();
+    window.location.href = '/admin/login';
+  }
+
   cargarInventario() {
-    this.productoService.obtenerProductos().subscribe({
-      next: (data: any[]) => {
-        // Filtramos en el frontend para asegurarnos de no mostrar los eliminados
-        this.productos = data.filter(p => p.activo !== false);
+    this.cargando = true;
+    const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
+    const negocioId = usuario.negocioId ?? undefined;
+
+    this.productoService.obtenerProductos(negocioId).subscribe({
+      next: (data) => {
+        this.productos = data;
+        this.cargando = false;
         this.cdr.detectChanges();
       },
-      error: (err: any) => console.error(err)
+      error: (err) => {
+        this.cargando = false;
+        console.error(err);
+      }
     });
   }
 
-  // --- MÉTODOS DEL CRUD ---
-
   abrirModal(prod: any) {
-    this.productoEditando = { ...prod }; // Hacemos una copia exacta
+    this.productoEditando = { ...prod };
     this.modalAbierto = true;
   }
 
@@ -57,19 +80,19 @@ export class Inventario implements OnInit {
       .subscribe({
         next: () => {
           this.cerrarModal();
-          this.cargarInventario(); // Recargamos para ver los cambios
+          this.cargarInventario();
         },
-        error: (err) => alert('Error al actualizar')
+        error: (err) => alert('Error al actualizar el producto')
       });
   }
 
   eliminarProducto(id: string) {
-    if (confirm('¿Estás seguro de retirar este producto del inventario?')) {
+    if (confirm('¿Estás seguro de eliminar este producto del inventario?')) {
       this.productoService.eliminarProducto(id).subscribe({
         next: () => {
-          this.cargarInventario(); // Recargamos y el producto desaparecerá
+          this.cargarInventario();
         },
-        error: (err) => alert('Error al eliminar')
+        error: (err) => alert('Error al eliminar el producto')
       });
     }
   }

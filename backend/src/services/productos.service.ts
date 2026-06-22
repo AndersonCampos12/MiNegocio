@@ -1,28 +1,51 @@
-import { prisma } from '../config/database'; // O '../index' dependiendo de dónde exportes tu prisma
+import { prisma } from '../config/database';
 
 export class ProductosService {
-    async crearProducto(socioId: string, data: any) {
-        return await prisma.producto.create({
+
+    // SUPERADMIN pasa negocioId de cualquier empresa
+    // ADMIN/VENDEDOR/CAJERO pasan su propio negocioId
+    async obtenerProductos(negocioId: string) {
+        return prisma.producto.findMany({
+            where: { negocioId, activo: true },
+            orderBy: { creadoEn: 'desc' }
+        });
+    }
+
+    async crearProducto(negocioId: string, data: {
+        nombre: string;
+        valor: number;
+        stock: number;
+        descripcion?: string;
+        imagenUrl?: string | null;
+    }) {
+        return prisma.producto.create({
             data: {
-                socioId: socioId,
+                negocioId,
                 nombre: data.nombre,
                 valor: data.valor,
-                stock: data.stock || 0,
+                stock: data.stock,
                 descripcion: data.descripcion,
                 imagenUrl: data.imagenUrl
             }
         });
     }
 
-    async obtenerInventario(negocioId: string) {
-        // Busca todos los productos de todos los socios que pertenezcan al mismo negocio
-        return await prisma.producto.findMany({
-            where: {
-                socio: {
-                    negocioId: negocioId
-                }
-            },
-            orderBy: { creadoEn: 'desc' } // O el campo de fecha que tengas
+    async actualizarProducto(id: string, data: any) {
+        return prisma.producto.update({
+            where: { id },
+            data: {
+                nombre: data.nombre,
+                valor: parseFloat(data.valor),
+                stock: parseInt(data.stock, 10),
+                descripcion: data.descripcion
+            }
+        });
+    }
+
+    async desactivarProducto(id: string) {
+        return prisma.producto.update({
+            where: { id },
+            data: { activo: false }
         });
     }
 }

@@ -17,6 +17,16 @@ router.get('/', async (req, res) => {
 
         if (!socio) return res.status(404).json({ mensaje: 'Socio no encontrado' });
 
+        // ==========================================
+        // EL GUARDIA DE SEGURIDAD (Solución TS2345)
+        // ==========================================
+        if (!socio.negocioId) {
+            return res.status(403).json({
+                mensaje: 'Acceso denegado. Este usuario no tiene una empresa asignada y no posee métricas.'
+            });
+        }
+
+        // Ahora TypeScript sabe que negocioId es un string 100% real
         const metricas = await reportesService.obtenerMetricas(socio.negocioId);
         res.status(200).json(metricas);
     } catch (error) {

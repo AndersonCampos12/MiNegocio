@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
+import { SocketService } from './socket'; // <-- NUEVO IMPORT
 
 @Injectable({
     providedIn: 'root'
@@ -8,11 +9,22 @@ import { Observable, tap } from 'rxjs';
 export class AuthService {
     private apiUrl = 'http://localhost:3000/api/auth'; // La ruta de tu backend
 
-    constructor(private http: HttpClient) { }
+    constructor(private http: HttpClient, private socketService: SocketService) { }
 
     // 1. Registro de negocio y administrador
     registrar(datos: any): Observable<any> {
         return this.http.post(`${this.apiUrl}/registro`, datos);
+    }
+
+    // NUEVO: Registro exclusivo para clientes
+    registrarCliente(datos: any) {
+        // Apuntamos al nuevo endpoint público que configuramos en auth.routes.ts
+        return this.http.post(`${this.apiUrl}/cliente/registro`, datos);
+    }
+
+    // DE PASO: Actualiza tu antiguo método de registro para que quede para el SuperAdmin
+    crearEmpresaAdmin(datos: any) {
+        return this.http.post(`${this.apiUrl}/admin/crear-empresa`, datos);
     }
 
     // 2. Login tradicional
@@ -40,6 +52,11 @@ export class AuthService {
         );
     }
 
+    getSocioActual() {
+        const raw = localStorage.getItem('usuario');
+        return raw ? JSON.parse(raw) : null;
+    }
+
     // Utilidades para verificar la sesión
     getToken(): string | null {
         return localStorage.getItem('token');
@@ -52,5 +69,21 @@ export class AuthService {
     logout(): void {
         localStorage.removeItem('token');
         localStorage.removeItem('usuario');
+
+        // 🔥 ¡AQUÍ MUERE EL SOCKET! Desconectamos limpiamente
+        this.socketService.desconectar();
+    }
+
+    getRole(): string | null {
+        const usuarioStr = localStorage.getItem('usuario');
+        if (!usuarioStr) return null;
+
+        try {
+            const usuario = JSON.parse(usuarioStr);
+            return usuario.rol || null;
+        } catch (error) {
+            console.error('Error al parsear el usuario del localStorage', error);
+            return null;
+        }
     }
 }

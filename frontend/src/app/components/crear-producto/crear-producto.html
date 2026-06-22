@@ -1,67 +1,216 @@
-<div class="min-h-screen bg-fondoOscuro text-white flex flex-col relative">
-    <div class="flex justify-between items-center p-6 border-b border-gray-800 sticky top-0 bg-fondoOscuro z-10">
-        <div class="flex items-center gap-4 cursor-pointer hover:text-turquesa transition-colors"
-            routerLink="/inventario">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18">
-                </path>
-            </svg>
-            <h1 class="text-lg font-light tracking-wide">Crear producto</h1>
-        </div>
-        <span class="text-turquesa text-sm font-semibold">Importaciones RS</span>
-    </div>
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+    <!-- NavBar reutilizable -->
+    <app-admin-layout [usuario]="usuarioActual" [rol]="rolActual" (onCerrarSesion)="cerrarSesion()">
+    </app-admin-layout>
 
-    <div class="p-6 flex-1">
-        <h2 class="text-turquesa text-sm font-medium mb-6">Detalles del producto</h2>
-
-        <form class="flex flex-col gap-5">
-            <div class="flex flex-col items-start gap-2 mb-2 relative">
-                <input type="file" accept="image/*" (change)="alSeleccionarImagen($event)"
-                    class="absolute inset-0 w-24 h-24 opacity-0 cursor-pointer z-10">
-                <div
-                    class="w-24 h-24 bg-white rounded-xl flex flex-col items-center justify-center text-black shadow-md overflow-hidden relative">
-                    @if (vistaPrevia) {
-                    <img [src]="vistaPrevia" class="w-full h-full object-cover">
-                    } @else {
-                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <!-- Contenido principal -->
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Encabezado de sección -->
+        <div class="mb-8">
+            <div class="flex items-center gap-3">
+                <a routerLink="/admin/inventario"
+                    class="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+                            d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
-                    <span class="text-[10px] font-medium text-center">Cargar<br>imagen</span>
-                    }
+                </a>
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Crear Producto</h1>
+                    <p class="text-sm text-gray-500 mt-1">Agrega un nuevo producto al inventario</p>
                 </div>
             </div>
+        </div>
 
-            <div class="flex flex-col gap-1.5">
-                <label class="text-[10px] text-gray-300 font-light tracking-wider">NOMBRE DEL PRODUCTO</label>
-                <input type="text" [(ngModel)]="nombre" name="nombre" placeholder="Ej: Cuadernos"
-                    class="w-full p-3.5 bg-white text-black rounded-sm outline-none text-sm font-medium shadow-sm focus:ring-2 focus:ring-turquesa">
-            </div>
+        <!-- Formulario -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8">
+            <form class="space-y-6" (ngSubmit)="guardar()">
+                <!-- Sección de imagen -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-3">Imagen del Producto</label>
+                    <div class="flex items-start gap-4">
+                        <div class="relative group cursor-pointer">
+                            <input type="file" accept="image/*" (change)="alSeleccionarImagen($event)"
+                                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                            <div
+                                class="w-32 h-32 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center overflow-hidden group-hover:border-blue-400 group-hover:bg-blue-50 transition-all">
+                                @if (vistaPrevia) {
+                                <img [src]="vistaPrevia" alt="Vista previa" class="w-full h-full object-cover">
+                                } @else {
+                                <svg class="w-8 h-8 text-gray-400 mb-2 group-hover:text-blue-500 transition-colors"
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span
+                                    class="text-xs font-medium text-gray-500 group-hover:text-blue-600 transition-colors text-center px-2">
+                                    Cargar imagen
+                                </span>
+                                }
+                            </div>
+                        </div>
+                        @if (vistaPrevia) {
+                        <div class="flex-1">
+                            <p class="text-sm text-gray-600 mb-2">Imagen seleccionada</p>
+                            <button type="button" (click)="removerImagen()"
+                                class="text-xs text-red-600 hover:text-red-700 font-medium flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                Eliminar imagen
+                            </button>
+                        </div>
+                        }
+                    </div>
+                </div>
 
-            <div class="flex flex-col gap-1.5">
-                <label class="text-[10px] text-gray-300 font-light tracking-wider">VALOR</label>
-                <input type="number" [(ngModel)]="valor" name="valor" placeholder="$ 0"
-                    class="w-full p-3.5 bg-white text-black rounded-sm outline-none text-sm font-medium shadow-sm focus:ring-2 focus:ring-turquesa">
-            </div>
+                <!-- Grid de campos -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <!-- Nombre del producto -->
+                    <div class="sm:col-span-2">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            Nombre del Producto <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" [(ngModel)]="nombre" name="nombre" required
+                            placeholder="Ej: Cuadernos Universitarios"
+                            class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                    </div>
 
-            <div class="flex flex-col gap-1.5">
-                <label class="text-[10px] text-gray-300 font-light tracking-wider">STOCK</label>
-                <input type="number" [(ngModel)]="stock" name="stock" placeholder="Cantidad"
-                    class="w-full p-3.5 bg-white text-black rounded-sm outline-none text-sm font-medium shadow-sm focus:ring-2 focus:ring-turquesa">
-            </div>
+                    <!-- Valor -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            Precio ($) <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">$</span>
+                            <input type="number" [(ngModel)]="valor" name="valor" required placeholder="0.00"
+                                step="0.01" min="0"
+                                class="w-full pl-8 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                        </div>
+                    </div>
 
-            <div class="flex flex-col gap-1.5">
-                <label class="text-[10px] text-gray-300 font-light tracking-wider">DESCRIPCIÓN DEL PRODUCTO</label>
-                <input type="text" [(ngModel)]="descripcion" name="descripcion" placeholder="Aqui va la descripcion"
-                    class="w-full p-3.5 bg-white text-black rounded-sm outline-none text-sm font-medium shadow-sm focus:ring-2 focus:ring-turquesa">
-            </div>
+                    <!-- Stock -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            Stock Inicial <span class="text-red-500">*</span>
+                        </label>
+                        <input type="number" [(ngModel)]="stock" name="stock" required placeholder="0" min="0"
+                            class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                    </div>
 
-            <div class="mt-8">
-                <button type="button" (click)="guardar()"
-                    class="w-full bg-turquesa text-white font-semibold py-4 rounded-full text-sm tracking-wide hover:bg-opacity-80 transition-all active:scale-[0.98] shadow-lg">
-                    Crear Producto
-                </button>
+                    <!-- Descripción -->
+                    <div class="sm:col-span-2">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            Descripción del Producto
+                        </label>
+                        <textarea [(ngModel)]="descripcion" name="descripcion" rows="4"
+                            placeholder="Describe las características principales del producto..."
+                            class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"></textarea>
+                        <p class="text-xs text-gray-400 mt-1">{{ descripcion.length }}/500 caracteres</p>
+                    </div>
+                </div>
+
+                <!-- Vista previa del producto -->
+                @if (nombre || valor || stock) {
+                <div class="border-t border-gray-100 pt-6">
+                    <h3 class="text-sm font-semibold text-gray-700 mb-4">Vista Previa del Producto</h3>
+                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6">
+                        <div class="flex items-start gap-4">
+                            <div
+                                class="w-20 h-20 rounded-lg bg-white flex items-center justify-center overflow-hidden shadow-sm">
+                                @if (vistaPrevia) {
+                                <img [src]="vistaPrevia" alt="Preview" class="w-full h-full object-cover">
+                                } @else {
+                                <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                </svg>
+                                }
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-gray-800">{{ nombre || 'Nombre del producto' }}</h4>
+                                <p class="text-xs text-gray-500 mt-1 line-clamp-2">{{ descripcion || 'Sin descripción'
+                                    }}</p>
+                                <div class="flex items-center gap-4 mt-3">
+                                    <span class="text-lg font-bold text-blue-600">${{ valor || '0.00' }}</span>
+                                    <span class="text-xs font-medium text-gray-500">Stock: {{ stock || '0' }}
+                                        unidades</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                }
+
+                <!-- Botones de acción -->
+                <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-100">
+                    <button type="button" routerLink="/admin/inventario"
+                        class="w-full sm:w-auto px-6 py-3 border border-gray-300 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors order-2 sm:order-1">
+                        Cancelar
+                    </button>
+                    <button type="submit" [disabled]="guardando || !nombre || !valor || !stock"
+                        class="w-full sm:flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl text-sm font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg shadow-blue-500/25 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] order-1 sm:order-2 flex items-center justify-center gap-2">
+                        @if (guardando) {
+                        <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                            </circle>
+                            <path class="opacity-75" fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                            </path>
+                        </svg>
+                        Creando producto...
+                        } @else {
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Crear Producto
+                        }
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Tips informativos -->
+        <div class="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-white rounded-xl border border-gray-100 p-4 flex items-start gap-3">
+                <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-gray-700 mb-1">Campos obligatorios</p>
+                    <p class="text-xs text-gray-500">Nombre, precio y stock son requeridos para crear un producto.</p>
+                </div>
             </div>
-        </form>
-    </div>
+            <div class="bg-white rounded-xl border border-gray-100 p-4 flex items-start gap-3">
+                <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-gray-700 mb-1">Imagen del producto</p>
+                    <p class="text-xs text-gray-500">Formatos JPG, PNG. Tamaño recomendado: 800x800px.</p>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl border border-gray-100 p-4 flex items-start gap-3">
+                <div class="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-gray-700 mb-1">Revisa antes de crear</p>
+                    <p class="text-xs text-gray-500">Verifica los datos en la vista previa antes de guardar.</p>
+                </div>
+            </div>
+        </div>
+    </main>
 </div>

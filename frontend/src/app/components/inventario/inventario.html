@@ -1,105 +1,270 @@
-<div class="min-h-screen bg-fondoOscuro text-white flex flex-col pb-24 relative">
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+    <!-- NavBar reutilizable -->
+    <app-admin-layout [usuario]="usuarioActual" [rol]="rolActual" (onCerrarSesion)="cerrarSesion()">
+    </app-admin-layout>
 
-    <div class="flex justify-between items-center p-6 border-b border-gray-800 sticky top-0 bg-fondoOscuro z-10">
-        <div class="flex items-center gap-4 cursor-pointer hover:text-turquesa transition-colors"
-            routerLink="/dashboard">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18">
-                </path>
-            </svg>
-            <h1 class="text-lg font-light tracking-wide">Inventario</h1>
+    <!-- Contenido principal -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Encabezado de sección -->
+        <div class="mb-8">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <a routerLink="/admin/dashboard"
+                        class="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm">
+                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                    </a>
+                    <div>
+                        <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Inventario</h1>
+                        <p class="text-sm text-gray-500 mt-1">Gestión de productos y stock</p>
+                    </div>
+                </div>
+
+                <!-- Botón crear producto (escritorio) -->
+                <button routerLink="/admin/crear-producto"
+                    class="hidden sm:flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold py-3 px-6 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg shadow-blue-500/25 active:scale-[0.98]">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Nuevo Producto
+                </button>
+            </div>
         </div>
-        <span class="text-turquesa text-sm font-semibold">Importaciones RS</span>
-    </div>
 
-    <div class="p-6 flex-1">
-        <h2 class="text-turquesa text-sm font-medium mb-6">Productos</h2>
+        <!-- Tabla de productos (vista escritorio) -->
+        <div class="hidden lg:block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="bg-gray-50 border-b border-gray-100">
+                            <th
+                                class="text-left py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                Producto</th>
+                            <th
+                                class="text-left py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                Precio</th>
+                            <th
+                                class="text-center py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                Stock</th>
+                            <th
+                                class="text-center py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        @for (prod of productos; track prod.id) {
+                        <tr class="hover:bg-blue-50/30 transition-colors group">
+                            <td class="py-4 px-6">
+                                <div class="flex items-center gap-4">
+                                    <div
+                                        class="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+                                        @if (prod.imagenUrl) {
+                                        <img [src]="'http://localhost:3000' + prod.imagenUrl"
+                                            alt="Foto de {{ prod.nombre }}" class="w-full h-full object-cover">
+                                        } @else {
+                                        <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                        </svg>
+                                        }
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-gray-800">{{ prod.nombre }}</p>
+                                        <p class="text-xs text-gray-500 line-clamp-1">{{ prod.descripcion || 'Sin
+                                            descripción' }}</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-4 px-6">
+                                <span class="text-lg font-bold text-blue-600">${{ prod.valor | number:'1.2-2' }}</span>
+                            </td>
+                            <td class="py-4 px-6 text-center">
+                                <span [class]="prod.stock > 10 ? 'bg-green-50 text-green-700 border-green-200' : 
+                                                 prod.stock > 0 ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 
+                                                 'bg-red-50 text-red-700 border-red-200'"
+                                    class="inline-flex items-center gap-1 text-xs font-medium px-3 py-1 rounded-full border">
+                                    <span class="w-1.5 h-1.5 rounded-full"
+                                        [class]="prod.stock > 10 ? 'bg-green-500' : prod.stock > 0 ? 'bg-yellow-500' : 'bg-red-500'">
+                                    </span>
+                                    {{ prod.stock }} unidades
+                                </span>
+                            </td>
+                            <td class="py-4 px-6">
+                                <div class="flex items-center justify-center gap-2">
+                                    <button (click)="abrirModal(prod)"
+                                        class="p-2 rounded-lg bg-gray-50 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                                        title="Editar producto">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                    </button>
+                                    <button (click)="eliminarProducto(prod.id)"
+                                        class="p-2 rounded-lg bg-gray-50 text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors"
+                                        title="Eliminar producto">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        } @empty {
+                        <tr>
+                            <td colspan="4" class="py-12 text-center">
+                                <div class="flex flex-col items-center">
+                                    <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                    </svg>
+                                    <p class="text-gray-500 font-medium">No hay productos registrados</p>
+                                    <p class="text-gray-400 text-sm mt-1">Comienza agregando tu primer producto al
+                                        inventario</p>
+                                </div>
+                            </td>
+                        </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-        <div class="flex flex-col gap-4">
+        <!-- Vista de tarjetas (móvil/tablet) -->
+        <div class="lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
             @for (prod of productos; track prod.id) {
-            <div class="bg-white text-black rounded-xl p-3 flex gap-4 items-center shadow-lg">
-
-                <div
-                    class="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center text-2xl overflow-hidden shrink-0">
+            <div
+                class="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group">
+                <!-- Imagen del producto -->
+                <div class="relative h-40 bg-gray-50 overflow-hidden">
                     @if (prod.imagenUrl) {
-                    <img [src]="'http://localhost:3000' + prod.imagenUrl" alt="Foto" class="w-full h-full object-cover">
-                    } @else { 📦 }
+                    <img [src]="'http://localhost:3000' + prod.imagenUrl" alt="Foto de {{ prod.nombre }}"
+                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    } @else {
+                    <div class="w-full h-full flex items-center justify-center">
+                        <svg class="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                    </div>
+                    }
+                    <!-- Badge de stock -->
+                    <div class="absolute top-3 right-3">
+                        <span [class]="prod.stock > 10 ? 'bg-green-50 text-green-700 border-green-200' : 
+                                         prod.stock > 0 ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 
+                                         'bg-red-50 text-red-700 border-red-200'"
+                            class="text-xs font-medium px-2.5 py-1 rounded-full border">
+                            Stock: {{ prod.stock }}
+                        </span>
+                    </div>
                 </div>
 
-                <div class="flex-1">
-                    <h3 class="font-semibold text-sm">{{ prod.nombre }}</h3>
-                    <p class="text-xs text-gray-500 mb-1">Valor: ${{ prod.valor }}</p>
-                    <p class="text-[11px] text-gray-400 leading-tight line-clamp-2">{{ prod.descripcion }}</p>
-                </div>
-
-                <div class="pr-2 text-center">
-                    <span
-                        class="bg-turquesa text-white px-3 py-1 rounded-full text-[10px] font-semibold inline-block mb-2">
-                        {{ prod.stock }} u
-                    </span>
-                    <div class="flex gap-2 justify-center mt-1">
-                        <button (click)="abrirModal(prod)"
-                            class="bg-gray-100 p-1.5 rounded-md hover:bg-gray-200 active:scale-95 transition-all text-sm">
-                            ✏️
-                        </button>
-                        <button (click)="eliminarProducto(prod.id)"
-                            class="bg-red-50 p-1.5 rounded-md hover:bg-red-100 active:scale-95 transition-all text-sm">
-                            🗑️
-                        </button>
+                <!-- Información -->
+                <div class="p-4">
+                    <h3 class="font-semibold text-gray-800 mb-1">{{ prod.nombre }}</h3>
+                    <p class="text-xs text-gray-500 mb-3 line-clamp-2">{{ prod.descripcion || 'Sin descripción' }}</p>
+                    <div class="flex items-center justify-between">
+                        <span class="text-lg font-bold text-blue-600">${{ prod.valor | number:'1.2-2' }}</span>
+                        <div class="flex gap-2">
+                            <button (click)="abrirModal(prod)"
+                                class="p-2 rounded-lg bg-gray-50 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </button>
+                            <button (click)="eliminarProducto(prod.id)"
+                                class="p-2 rounded-lg bg-gray-50 text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
             } @empty {
-            <p class="text-center text-xs text-gray-500 my-8">No hay productos registrados en este negocio.</p>
+            <div class="col-span-full flex flex-col items-center justify-center py-12 text-center">
+                <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+                <p class="text-gray-500 font-medium">No hay productos registrados</p>
+                <p class="text-gray-400 text-sm mt-1">Comienza agregando tu primer producto</p>
+            </div>
             }
         </div>
-    </div>
 
-    <div class="fixed bottom-0 left-0 right-0 bg-fondoOscuro p-6 z-20 border-t border-gray-800">
-        <button
-            class="w-full bg-turquesa text-white font-semibold py-4 rounded-full text-sm tracking-wide hover:bg-opacity-80 transition-all active:scale-[0.98] shadow-lg"
-            routerLink="/crear-producto">
-            Crear Producto
+        <!-- Botón flotante para móvil -->
+        <button routerLink="/admin/crear-producto"
+            class="lg:hidden fixed bottom-8 right-8 w-14 h-14 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/25 hover:from-blue-700 hover:to-blue-800 transition-all active:scale-95 z-20">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
         </button>
-    </div>
+    </main>
 
+    <!-- Modal de edición -->
     @if (modalAbierto) {
-    <div class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6 backdrop-blur-sm">
-        <div class="bg-fondoOscuro border border-gray-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl">
-            <h3 class="text-turquesa text-lg font-medium mb-4">Editar Producto</h3>
+    <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-gray-100 overflow-hidden">
+            <!-- Encabezado del modal -->
+            <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+                <h3 class="text-white font-semibold text-lg flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Editar Producto
+                </h3>
+            </div>
 
-            <div class="flex flex-col gap-4 mb-6">
+            <!-- Formulario -->
+            <div class="p-6 space-y-5">
                 <div>
-                    <label class="text-[10px] text-gray-400 mb-1 block">NOMBRE DEL PRODUCTO</label>
+                    <label class="block text-xs font-semibold text-gray-700 mb-2">Nombre del Producto</label>
                     <input [(ngModel)]="productoEditando.nombre" type="text"
-                        class="w-full bg-transparent border-b border-gray-600 p-2 text-sm text-white focus:outline-none focus:border-turquesa transition-colors">
+                        class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        placeholder="Ej: Laptop HP">
                 </div>
+
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="text-[10px] text-gray-400 mb-1 block">PRECIO ($)</label>
+                        <label class="block text-xs font-semibold text-gray-700 mb-2">Precio ($)</label>
                         <input [(ngModel)]="productoEditando.valor" type="number"
-                            class="w-full bg-transparent border-b border-gray-600 p-2 text-sm text-white focus:outline-none focus:border-turquesa transition-colors">
+                            class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                            placeholder="0.00" step="0.01">
                     </div>
                     <div>
-                        <label class="text-[10px] text-gray-400 mb-1 block">STOCK ACTUAL</label>
+                        <label class="block text-xs font-semibold text-gray-700 mb-2">Stock</label>
                         <input [(ngModel)]="productoEditando.stock" type="number"
-                            class="w-full bg-transparent border-b border-gray-600 p-2 text-sm text-white focus:outline-none focus:border-turquesa transition-colors">
+                            class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                            placeholder="0">
                     </div>
                 </div>
+
                 <div>
-                    <label class="text-[10px] text-gray-400 mb-1 block">DESCRIPCIÓN</label>
-                    <textarea [(ngModel)]="productoEditando.descripcion" rows="2"
-                        class="w-full bg-transparent border-b border-gray-600 p-2 text-sm text-white focus:outline-none focus:border-turquesa transition-colors"></textarea>
+                    <label class="block text-xs font-semibold text-gray-700 mb-2">Descripción</label>
+                    <textarea [(ngModel)]="productoEditando.descripcion" rows="3"
+                        class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+                        placeholder="Descripción del producto..."></textarea>
                 </div>
             </div>
 
-            <div class="flex gap-3">
+            <!-- Botones del modal -->
+            <div class="border-t border-gray-100 px-6 py-4 bg-gray-50 flex gap-3">
                 <button (click)="cerrarModal()"
-                    class="flex-1 border border-gray-600 text-gray-300 py-3 rounded-xl text-xs font-semibold hover:bg-gray-800 transition-colors">
+                    class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-100 transition-colors">
                     Cancelar
                 </button>
                 <button (click)="guardarCambios()"
-                    class="flex-1 bg-turquesa text-fondoOscuro py-3 rounded-xl text-xs font-bold hover:bg-opacity-90 transition-colors">
+                    class="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl text-sm font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg shadow-blue-500/25">
                     Guardar Cambios
                 </button>
             </div>

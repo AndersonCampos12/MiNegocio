@@ -13,8 +13,10 @@ export class ReportesService {
         // 2. Contamos cuántos productos están en alerta roja (menos de 10 unidades)
         const productosBajoStock = await prisma.producto.count({
             where: {
-                socio: { negocioId: negocioId },
-                stock: { lt: 10 }
+                negocioId: negocioId,
+                stock: {
+                    lt: 10
+                }
             }
         });
 

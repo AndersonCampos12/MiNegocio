@@ -1,0 +1,155 @@
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+
+    <app-admin-layout></app-admin-layout>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center gap-4">
+                <a routerLink="/admin/dashboard"
+                    class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                </a>
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800">Gestión de Usuarios</h1>
+                    <p class="text-sm text-gray-500">Administra los accesos y roles del sistema</p>
+                </div>
+            </div>
+            <button (click)="abrirModal()"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow transition-colors flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Nuevo Usuario
+            </button>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-600 text-sm uppercase tracking-wider border-b border-gray-100">
+                            <th class="p-4 font-semibold">Nombre</th>
+                            <th class="p-4 font-semibold">Email</th>
+                            <th class="p-4 font-semibold">Rol</th>
+                            @if (esSuperadmin) { <th class="p-4 font-semibold">Empresa</th> }
+                            <th class="p-4 font-semibold text-right">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @for (user of usuarios; track user.id) {
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="p-4 text-gray-800 font-medium">{{ user.nombre }}</td>
+                            <td class="p-4 text-gray-500">{{ user.email }}</td>
+                            <td class="p-4">
+                                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                                    {{ user.rol }}
+                                </span>
+                            </td>
+                            @if (esSuperadmin) {
+                            <td class="p-4 text-gray-600 text-sm">
+                                {{ user.negocio?.nombre || 'Sin asignar' }}
+                            </td>
+                            }
+                            <td class="p-4 text-right flex justify-end gap-2">
+                                <button (click)="abrirModal(user)"
+                                    class="p-2 text-gray-400 hover:text-blue-600 transition-colors">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                </button>
+                                <button (click)="eliminar(user.id)"
+                                    class="p-2 text-gray-400 hover:text-red-600 transition-colors">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </td>
+                        </tr>
+                        } @empty {
+                        <tr>
+                            <td colspan="5" class="p-8 text-center text-gray-500">No hay usuarios registrados.</td>
+                        </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+
+@if (mostrarModal) {
+<div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+        <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+            <h2 class="text-xl font-bold text-gray-800">{{ esEdicion ? 'Editar' : 'Nuevo' }} Usuario</h2>
+            <button (click)="cerrarModal()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="p-6 space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
+                <input type="text" [(ngModel)]="formulario.nombre"
+                    class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
+                <input type="email" [(ngModel)]="formulario.email"
+                    class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Contraseña <span class="text-xs text-gray-400 font-normal" *ngIf="esEdicion">(Dejar en blanco para
+                        no cambiar)</span>
+                </label>
+                <input type="password" [(ngModel)]="formulario.password"
+                    class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Rol</label>
+                    <select [(ngModel)]="formulario.rol"
+                        class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white">
+                        @for (rol of rolesDisponibles; track rol) {
+                        <option [value]="rol">{{ rol }}</option>
+                        }
+                    </select>
+                </div>
+
+                @if (esSuperadmin) {
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Asignar a Empresa</label>
+                    <select [(ngModel)]="formulario.negocioId"
+                        class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white">
+                        <option value="" disabled selected>Seleccione una empresa...</option>
+                        @for (empresa of empresas; track empresa.id) {
+                        <option [value]="empresa.id">{{ empresa.nombre }}</option>
+                        }
+                    </select>
+                </div>
+                }
+            </div>
+        </div>
+
+        <div class="p-6 bg-gray-50 flex justify-end gap-3 border-t border-gray-100">
+            <button (click)="cerrarModal()"
+                class="px-5 py-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors font-medium">Cancelar</button>
+            <button (click)="guardar()"
+                class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md transition-colors font-medium">Guardar</button>
+        </div>
+    </div>
+</div>
+}

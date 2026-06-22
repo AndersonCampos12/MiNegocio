@@ -1,5 +1,5 @@
-import { Component, NgZone, ChangeDetectorRef } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Component, NgZone, ChangeDetectorRef, OnInit } from '@angular/core';
+import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth';
 import { CommonModule } from '@angular/common';
@@ -7,34 +7,38 @@ import { CommonModule } from '@angular/common';
 @Component({
   selector: 'app-registro',
   standalone: true,
-  imports: [FormsModule, CommonModule, RouterLink], // Agregamos RouterLink para el botón de "Inicia sesión"
+  imports: [FormsModule, CommonModule, RouterLink],
   templateUrl: './registro.html',
   styleUrl: './registro.css'
 })
-export class Registro {
-  adminNombre = '';
+export class Registro implements OnInit {
+  nombre = '';
   email = '';
   password = '';
-  telefono = '';
-  negocioNombre = '';
   aceptaTerminos = false;
 
+  slugTienda = ''; // Aquí guardaremos la tienda actual
   errorMsg = '';
   cargando = false;
 
   constructor(
     private authService: AuthService,
     private router: Router,
+    private route: ActivatedRoute, // Inyectamos esto para leer la URL
     private ngZone: NgZone,
     private cdr: ChangeDetectorRef
   ) { }
 
+  ngOnInit() {
+    // Capturamos el slug de la tienda desde la URL (ej: /tienda/importaciones-rs/registro)
+    this.slugTienda = this.route.snapshot.paramMap.get('slug') || 'sistema-central';
+  }
+
   ejecutarRegistro() {
     this.errorMsg = '';
 
-    // Validaciones estrictas
-    if (!this.adminNombre || !this.email || !this.password || !this.negocioNombre) {
-      this.mostrarError('Por favor, completa todos los campos obligatorios.');
+    if (!this.nombre || !this.email || !this.password) {
+      this.mostrarError('Por favor, completa todos los campos.');
       return;
     }
 
@@ -44,43 +48,42 @@ export class Registro {
     }
 
     if (!this.aceptaTerminos) {
-      this.mostrarError('Debes aceptar los términos y condiciones para continuar.');
+      this.mostrarError('Debes aceptar las políticas de privacidad.');
       return;
     }
 
     this.cargando = true;
 
+    // Payload limpio, sin datos de empresas. El backend hará el resto gracias al slug.
     const datosPayload = {
-      adminNombre: this.adminNombre,
+      nombre: this.nombre,
       email: this.email,
       password: this.password,
-      telefono: this.telefono,
-      negocioNombre: this.negocioNombre
+      slug: this.slugTienda
     };
 
-    // Envío al backend
-    // Envío al backend
-    this.authService.registrar(datosPayload).subscribe({
-      next: (respuesta) => {
+    // Usamos el endpoint público que creamos en auth.routes.ts
+    this.authService.registrarCliente(datosPayload).subscribe({
+      // ¡SOLUCIÓN!: Le decimos a TypeScript que esto es (respuesta: any)
+      next: (respuesta: any) => {
         this.ngZone.run(() => {
           this.cargando = false;
-          // Mostramos una alerta amigable (luego puedes cambiarla por un Toast bonito)
-          alert('¡Solicitud enviada! Tu cuenta será revisada por un administrador. Te notificaremos cuando esté activa.');
-          this.router.navigate(['/login']);
+          // Redirigimos al cliente directo al login de esa tienda
+          this.router.navigate(['/tienda', this.slugTienda, 'login']);
         });
       },
-      error: (moduloError) => {
+      // ¡SOLUCIÓN!: Le decimos a TypeScript que esto es (err: any)
+      error: (err: any) => {
         this.ngZone.run(() => {
-          this.mostrarError(moduloError.error?.mensaje || 'Error al conectar con el servidor. El correo o empresa ya existen.');
+          this.mostrarError(err.error?.mensaje || 'Error al registrarte. El correo ya existe.');
         });
       }
     });
   }
 
-  // Método auxiliar para manejar la UI de manera limpia
   private mostrarError(mensaje: string) {
     this.cargando = false;
     this.errorMsg = mensaje;
-    this.cdr.detectChanges(); // Forzamos actualización visual
+    this.cdr.detectChanges();
   }
 }

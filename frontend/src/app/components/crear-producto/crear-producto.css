@@ -1,0 +1,59 @@
+/* Estilos personalizados para crear producto */
+:host {
+    display: block;
+}
+
+/* Animación de carga */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Mejora visual para el preview */
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Animación para la vista previa */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.bg-gradient-to-r.from-blue-50.to-indigo-50 {
+    animation: fadeInUp 0.3s ease-out;
+}
+
+/* Estilo para inputs en focus */
+input:focus,
+textarea:focus {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Transiciones suaves */
+input,
+textarea,
+button {
+    transition: all 0.2s ease;
+}
+
+/* Estilo para placeholder */
+::placeholder {
+    color: #9CA3AF;
+    opacity: 1;
+}

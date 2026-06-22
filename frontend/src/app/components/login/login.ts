@@ -1,7 +1,8 @@
 import { Component, OnInit, NgZone, ChangeDetectorRef } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth';
+import { SocketService } from '../../services/socket'; // <-- NUEVO IMPORT
 import { environment } from '../../../environments/environment';
 
 declare const google: any;
@@ -9,7 +10,7 @@ declare const google: any;
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [RouterLink, FormsModule],
+  imports: [FormsModule],
   templateUrl: './login.html',
   styleUrl: './login.css'
 })
@@ -23,7 +24,8 @@ export class Login implements OnInit {
     private authService: AuthService,
     private router: Router,
     private ngZone: NgZone,
-    private cdr: ChangeDetectorRef // Agregamos esto para forzar el refresco visual si es necesario
+    private cdr: ChangeDetectorRef,
+    private socketService: SocketService // <-- INYECTAR AQUÍ
   ) { }
 
   ngOnInit() {
@@ -104,24 +106,24 @@ export class Login implements OnInit {
     this.cdr.detectChanges(); // Esto le da un "empujón" a Angular para que actualice el HTML sí o sí
   }
 
-  // NUEVA LÓGICA DE RUTAS: Seguridad por defecto (Lowest Privilege)
   // NUEVA LÓGICA DE RUTAS
   private procesarRedireccion(response: any) {
-
     this.isLoading = false;
+
+    // 🔥 ¡AQUÍ NACE EL SOCKET! Encendemos la conexión en tiempo real
+    this.socketService.conectar();
 
     const rolUsuario =
       response?.usuario?.rol ||
       response?.socio?.rol ||
       'CLIENTE';
 
-
     switch (rolUsuario) {
       case 'SUPERADMIN':
       case 'ADMINISTRADOR':
       case 'VENDEDOR':
       case 'CAJERO':
-        this.router.navigate(['/admin']);
+        this.router.navigate(['/admin/dashboard']); // <-- Corregido a /admin/dashboard
         break;
 
       case 'CLIENTE':

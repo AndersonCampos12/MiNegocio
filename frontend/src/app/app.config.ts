@@ -3,12 +3,14 @@ import { provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
 
-import { provideHttpClient } from '@angular/common/http'; // <-- Importación nueva
+import { provideHttpClient, withInterceptors } from '@angular/common/http'; // <-- Importación nueva
+
+import { authInterceptor } from './interceptors/auth-interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
-    provideHttpClient() // <-- Habilita las peticiones a tu backend
+    provideHttpClient(withInterceptors([authInterceptor]))
   ]
 };

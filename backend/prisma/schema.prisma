@@ -6,9 +6,8 @@ datasource db {
   provider = "postgresql"
 }
 
-// NUEVO: Definimos los roles estrictos del sistema
 enum Rol {
-  SUPERADMIN     // <-- NUEVO ROL SUPREMO
+  SUPERADMIN
   ADMINISTRADOR
   VENDEDOR
   CAJERO
@@ -26,31 +25,30 @@ model Negocio {
   nombre    String
   slug      String        @unique
   plan      String        @default("MULTI")
-  estado    EstadoNegocio @default(PENDIENTE) // NUEVO: Todo negocio nace pendiente
+  estado    EstadoNegocio @default(PENDIENTE)
   creadoEn  DateTime      @default(now()) @map("creado_en")
   socios    Socio[]
-
+  productos Producto[]    // ← Productos pertenecen al Negocio
+  ventas    Venta[]       // ← Ventas pertenecen al Negocio
   @@map("negocios")
 }
 
 model Socio {
-  id        String     @id @default(uuid())
-  negocioId String     @map("negocio_id")
-  negocio   Negocio    @relation(fields: [negocioId], references: [id])
+  id        String    @id @default(uuid())
+  negocioId String?
+  negocio   Negocio?  @relation(fields: [negocioId], references: [id])
   nombre    String
-  email     String     @unique
+  email     String    @unique
   password  String
-  rol       Rol        @default(CLIENTE) // NUEVO: Por defecto todos son clientes
-  productos Producto[]
-  ventas    Venta[]
-
+  rol       Rol       @default(CLIENTE)
+  ventas    Venta[]   // El socio registra la venta (auditoría)
   @@map("socios")
 }
 
 model Producto {
   id          String         @id @default(uuid())
-  socioId     String         @map("socio_id")
-  socio       Socio          @relation(fields: [socioId], references: [id])
+  negocioId   String         @map("negocio_id")  // ← CAMBIADO
+  negocio     Negocio        @relation(fields: [negocioId], references: [id])
   nombre      String
   valor       Decimal
   stock       Int            @default(0)
@@ -61,18 +59,18 @@ model Producto {
   creadoEn    DateTime       @default(now()) @map("creado_en")
   detalles    DetalleVenta[]
   alertas     Alerta[]
-
   @@map("productos")
 }
 
 model Venta {
-  id        String         @id @default(uuid())
-  socioId   String         @map("socio_id")
-  socio     Socio          @relation(fields: [socioId], references: [id])
-  total     Decimal
-  creadoEn  DateTime       @default(now()) @map("creado_en")
-  detalles  DetalleVenta[]
-
+  id         String         @id @default(uuid())
+  negocioId  String         @map("negocio_id")  // ← CAMBIADO
+  negocio    Negocio        @relation(fields: [negocioId], references: [id])
+  socioId    String         @map("socio_id")    // quién registró la venta
+  socio      Socio          @relation(fields: [socioId], references: [id])
+  total      Decimal
+  creadoEn   DateTime       @default(now()) @map("creado_en")
+  detalles   DetalleVenta[]
   @@map("ventas")
 }
 
@@ -84,7 +82,6 @@ model DetalleVenta {
   precioUnit Decimal  @map("precio_unit")
   venta      Venta    @relation(fields: [ventaId], references: [id])
   producto   Producto @relation(fields: [productoId], references: [id])
-
   @@map("detalle_ventas")
 }
 
@@ -94,13 +91,11 @@ model Alerta {
   mensaje    String
   creadoEn   DateTime @default(now()) @map("creado_en")
   producto   Producto @relation(fields: [productoId], references: [id])
-
   @@map("alertas")
 }
 
 model SesionCaja {
   id        String   @id @default(uuid())
   creadoEn  DateTime @default(now()) @map("creado_en")
-  
   @@map("sesiones_caja")
 }

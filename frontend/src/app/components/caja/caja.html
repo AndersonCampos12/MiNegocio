@@ -1,11 +1,8 @@
 <div class="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-    <!-- NavBar reutilizable -->
     <app-admin-layout [usuario]="usuarioActual" [rol]="rolActual" (onCerrarSesion)="cerrarSesion()">
     </app-admin-layout>
 
-    <!-- Contenido principal -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- Encabezado de sección -->
         <div class="mb-8">
             <div class="flex items-center gap-3 mb-4">
                 <a routerLink="/admin/dashboard"
@@ -22,21 +19,17 @@
             </div>
         </div>
 
-        <!-- Contenido flexible -->
         <div class="flex flex-col lg:flex-row gap-8">
-            <!-- Lista de productos -->
             <div class="flex-1">
                 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                     <h2 class="text-lg font-semibold text-gray-800 mb-2">Seleccionar Productos</h2>
                     <p class="text-sm text-gray-500 mb-6">Explora el inventario disponible y agrega productos al carrito
                     </p>
 
-                    <!-- Grid de productos -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                         @for (prod of productos; track prod.id) {
                         <div
                             class="group bg-white rounded-xl border border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all duration-300 overflow-hidden">
-                            <!-- Imagen del producto -->
                             <div class="relative h-40 bg-gray-50 overflow-hidden">
                                 @if (prod.imagenUrl) {
                                 <img [src]="'http://localhost:3000' + prod.imagenUrl" alt="Foto de {{ prod.nombre }}"
@@ -50,18 +43,15 @@
                                     </svg>
                                 </div>
                                 }
-                                <!-- Badge de stock -->
                                 <div class="absolute top-3 right-3">
-                                    <span [class]="prod.stock > 10 ? 'bg-green-50 text-green-700 border-green-200' : 
-                                                     prod.stock > 0 ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 
-                                                     'bg-red-50 text-red-700 border-red-200'"
+                                    <span
+                                        [class]="prod.stock > 10 ? 'bg-green-50 text-green-700 border-green-200' : prod.stock > 0 ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 'bg-red-50 text-red-700 border-red-200'"
                                         class="text-xs font-medium px-2.5 py-1 rounded-full border">
                                         Stock: {{ prod.stock }}
                                     </span>
                                 </div>
                             </div>
 
-                            <!-- Información del producto -->
                             <div class="p-4">
                                 <h3 class="font-semibold text-gray-800 mb-1 line-clamp-1">{{ prod.nombre }}</h3>
                                 <p class="text-xs text-gray-500 mb-3 line-clamp-2 min-h-[2.5rem]">{{ prod.descripcion ||
@@ -89,21 +79,17 @@
                                     d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                             </svg>
                             <p class="text-gray-500 text-sm font-medium">No hay productos disponibles</p>
-                            <p class="text-gray-400 text-xs mt-1">El inventario está vacío o no se ha cargado
-                                correctamente</p>
                         </div>
                         }
                     </div>
                 </div>
             </div>
 
-            <!-- Carrito de compras -->
             <div class="lg:w-96">
                 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sticky top-24">
 
                     <div class="mb-6 bg-gray-50 p-4 rounded-xl border border-gray-200">
                         <h3 class="text-sm font-semibold text-gray-800 mb-3">Datos del Cliente</h3>
-
                         @if (!clienteSeleccionado) {
                         <div class="flex gap-2 relative">
                             <div class="flex-1 relative">
@@ -151,6 +137,16 @@
                         }
                     </div>
 
+                    <div class="mb-6 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                        <label class="block text-sm font-semibold text-gray-800 mb-2">Método de Pago</label>
+                        <select [(ngModel)]="metodoPagoSeleccionado"
+                            class="w-full text-sm text-gray-700 bg-white border border-gray-300 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all cursor-pointer">
+                            <option value="EFECTIVO">💵 Efectivo / Caja</option>
+                            <option value="PAYPHONE">📱 PayPhone</option>
+                            <option value="KUSHKI">💳 Kushki</option>
+                        </select>
+                    </div>
+
                     <div class="border-t border-gray-100 pt-4 space-y-2 mt-4">
                         <div class="flex justify-between items-center">
                             <span class="text-sm text-gray-600">Subtotal</span>
@@ -178,47 +174,76 @@
             <div class="fixed inset-0 z-50 overflow-y-auto">
                 <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity"
                     (click)="mostrarModalCliente = false"></div>
-
                 <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
                     <div
                         class="relative bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-lg w-full">
-
                         <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                             <h3 class="text-lg font-bold text-gray-800 mb-4">Registrar Nuevo Cliente</h3>
-
                             <form [formGroup]="clienteForm" class="space-y-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Cédula / RUC</label>
                                     <input type="text" formControlName="cedula"
-                                        class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm placeholder-gray-400"
+                                        class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                                         placeholder="Ej: 2350xxxxxx">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Nombre Completo</label>
                                     <input type="text" formControlName="nombre"
-                                        class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm placeholder-gray-400"
+                                        class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                                         placeholder="Ej: Juan Pérez">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Email</label>
                                     <input type="email" formControlName="email"
-                                        class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm placeholder-gray-400"
+                                        class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                                         placeholder="juan@correo.com">
                                 </div>
                             </form>
                         </div>
-
                         <div class="bg-gray-50 px-4 py-3 sm:px-6 flex justify-end gap-2 border-t border-gray-100">
                             <button type="button" (click)="mostrarModalCliente = false"
-                                class="w-full inline-flex justify-center rounded-xl border border-gray-300 px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:w-auto sm:text-sm">
-                                Cancelar
-                            </button>
+                                class="w-full inline-flex justify-center rounded-xl border border-gray-300 px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:w-auto sm:text-sm">Cancelar</button>
                             <button type="button" (click)="guardarNuevoCliente()" [disabled]="clienteForm.invalid"
-                                class="w-full inline-flex justify-center rounded-xl border border-transparent px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 disabled:opacity-50 sm:w-auto sm:text-sm">
-                                Guardar y Seleccionar
-                            </button>
+                                class="w-full inline-flex justify-center rounded-xl border border-transparent px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 disabled:opacity-50 sm:w-auto sm:text-sm">Guardar
+                                y Seleccionar</button>
                         </div>
+                    </div>
+                </div>
+            </div>
+            }
 
+            @if (mostrarVisor) {
+            <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                <div
+                    class="bg-white rounded-2xl w-full max-w-lg shadow-2xl border border-gray-100 overflow-hidden flex flex-col h-[80vh]">
+                    <div
+                        class="bg-gradient-to-r from-gray-800 to-gray-900 px-6 py-4 flex items-center justify-between shrink-0">
+                        <h3 class="text-white font-semibold text-base flex items-center gap-2">
+                            <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Vista Previa del Comprobante
+                        </h3>
+                        <button (click)="cerrarVisor()"
+                            class="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="flex-1 bg-gray-100 p-4 overflow-hidden relative">
+                        <iframe [src]="urlFacturaSegura"
+                            class="w-full h-full rounded-xl border border-gray-200 bg-white shadow-inner"></iframe>
+                    </div>
+
+                    <div class="border-t border-gray-100 px-6 py-4 bg-gray-50 flex justify-end shrink-0">
+                        <button (click)="cerrarVisor()"
+                            class="px-5 py-2.5 bg-gray-800 hover:bg-gray-900 text-white rounded-xl text-sm font-semibold transition-all shadow-md">
+                            Finalizar y Cerrar
+                        </button>
                     </div>
                 </div>
             </div>

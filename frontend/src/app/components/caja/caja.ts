@@ -1,21 +1,22 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormControl, FormGroup, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormsModule, FormControl, FormGroup, Validators } from '@angular/forms';
 import {
   Subscription, debounceTime, distinctUntilChanged,
-  switchMap, of, catchError  // ← añadir catchError
+  switchMap, of, catchError
 } from 'rxjs';
 import { ProductoService } from '../../services/producto';
 import { VentasService } from '../../services/ventas';
 import { ClientesService } from '../../services/clientes';
 import { AdminLayout } from '../admin-layout/admin-layout';
 import { AuthService } from '../../services/auth';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-caja',
   standalone: true,
-  imports: [RouterLink, CommonModule, AdminLayout, ReactiveFormsModule],
+  imports: [RouterLink, CommonModule, AdminLayout, ReactiveFormsModule, FormsModule],
   templateUrl: './caja.html',
   styleUrl: './caja.css'
 })
@@ -23,6 +24,9 @@ export class Caja implements OnInit, OnDestroy {
   // Productos e Inventario
   productos: any[] = [];
   carrito: Map<string, { productoId: string; nombre: string; cantidad: number; precioUnit: number }> = new Map();
+
+  mostrarVisor = false;
+  urlFacturaSegura: SafeResourceUrl | null = null;
 
   // Totales e Impuestos (IVA 15%)
   subtotal = 0;
@@ -37,6 +41,9 @@ export class Caja implements OnInit, OnDestroy {
   clienteSeleccionado: any = null;
   buscandoCliente = false;
 
+  // NUEVO: Control para el método de pago (Efectivo, PayPhone, Kushki)
+  metodoPagoSeleccionado = 'EFECTIVO';
+
   // Modal de Registro Rápido de Cliente
   mostrarModalCliente = false;
   clienteForm = new FormGroup({
@@ -49,7 +56,6 @@ export class Caja implements OnInit, OnDestroy {
   usuarioActual: any = null;
   rolActual: string | null = null;
 
-  // Manejo centralizado de suscripciones para evitar fugas de memoria
   private subs = new Subscription();
 
   constructor(
@@ -57,7 +63,8 @@ export class Caja implements OnInit, OnDestroy {
     private ventasService: VentasService,
     private clientesService: ClientesService,
     private cdr: ChangeDetectorRef,
-    private authService: AuthService
+    private authService: AuthService,
+    private sanitizer: DomSanitizer
   ) { }
 
   ngOnInit() {
@@ -65,7 +72,6 @@ export class Caja implements OnInit, OnDestroy {
     this.cargarInventario();
     this.configurarBuscadorClientes();
 
-    // Escucha en tiempo real de actualizaciones de stock vía WebSockets
     this.subs.add(
       this.ventasService.onStockActualizado().subscribe((data) => {
         const prodIndex = this.productos.findIndex(p => p.id === data.productoId);
@@ -107,8 +113,6 @@ export class Caja implements OnInit, OnDestroy {
     });
   }
 
-  // --- GESTIÓN DE CLIENTES ---
-
   configurarBuscadorClientes() {
     this.subs.add(
       this.buscadorCliente.valueChanges.pipe(
@@ -121,7 +125,7 @@ export class Caja implements OnInit, OnDestroy {
             this.buscandoCliente = false;
             this.resultadosClientes = [];
             this.cdr.detectChanges();
-            return of([] as any[]);  // ← cast explícito
+            return of([] as any[]);
           }
 
           this.buscandoCliente = true;
@@ -132,12 +136,12 @@ export class Caja implements OnInit, OnDestroy {
             .pipe(
               catchError(err => {
                 console.error('Error al buscar clientes:', err);
-                return of([] as any[]);  // ← cast explícito
+                return of([] as any[]);
               })
             );
         })
       ).subscribe({
-        next: (resultados: any) => {  // ← any en lugar de any[]
+        next: (resultados: any) => {
           this.resultadosClientes = resultados;
           this.buscandoCliente = false;
           this.cdr.detectChanges();
@@ -176,13 +180,11 @@ export class Caja implements OnInit, OnDestroy {
         this.mostrarModalCliente = false;
         alert('Cliente registrado exitosamente');
       },
-      error: (err: any) => { // <-- Agregar : any aquí
+      error: (err: any) => {
         alert(`Error al crear cliente: ${err.error?.mensaje || err.message}`);
       }
     });
   }
-
-  // --- GESTIÓN DEL CARRITO ---
 
   agregarAlCarrito(prod: any) {
     if (prod.stock <= 0) {
@@ -216,6 +218,7 @@ export class Caja implements OnInit, OnDestroy {
       } else {
         this.carrito.delete(productoId);
       }
+      item.cantidad === 0 ? this.carrito.delete(productoId) : null;
       this.calcularTotales();
     }
   }
@@ -233,7 +236,18 @@ export class Caja implements OnInit, OnDestroy {
     this.totalVenta = this.subtotal + this.montoIva;
   }
 
-  // --- FINALIZAR PROCESO DE VENTA ---
+  ejecutarImpresionFactura(ventaId: string) {
+    const urlFactura = `http://localhost:3000/api/reportes/factura/${ventaId}`;
+    // Marcamos la URL como segura para que el iframe pueda renderizarla
+    this.urlFacturaSegura = this.sanitizer.bypassSecurityTrustResourceUrl(urlFactura);
+    this.mostrarVisor = true;
+    this.cdr.detectChanges();
+  }
+
+  cerrarVisor() {
+    this.mostrarVisor = false;
+    this.urlFacturaSegura = null;
+  }
 
   finalizarVenta() {
     if (this.carrito.size === 0) {
@@ -245,7 +259,6 @@ export class Caja implements OnInit, OnDestroy {
       return;
     }
 
-    // Estructura completa del Payload adaptada al nuevo esquema del POS
     const payloadFactura = {
       clienteId: this.clienteSeleccionado.id,
       socioId: this.usuarioActual.id,
@@ -253,25 +266,33 @@ export class Caja implements OnInit, OnDestroy {
       detalles: Array.from(this.carrito.values()),
       subtotal: this.subtotal,
       impuestos: this.montoIva,
-      total: this.totalVenta
+      total: this.totalVenta,
+      metodoPago: this.metodoPagoSeleccionado // <-- Enviamos el método seleccionado
     };
 
     this.ventasService.registrarVenta(payloadFactura).subscribe({
-      next: () => {
-        alert('¡Venta realizada con éxito!');
+      next: (resultadoVenta: any) => {
+        alert('¡Venta realizada con éxito! Generando factura...');
+
+        // 🚀 EJECUCIÓN AUTOMÁTICA: Si el backend retorna el objeto creado con su ID (resultadoVenta.id)
+        if (resultadoVenta && resultadoVenta.id) {
+          this.ejecutarImpresionFactura(resultadoVenta.id);
+        }
+
+        // Limpieza de caja
         this.carrito.clear();
         this.quitarCliente();
+        this.metodoPagoSeleccionado = 'EFECTIVO';
         this.calcularTotales();
         this.cargarInventario();
       },
-      error: (err: any) => { // <-- Agregar : any aquí
-        alert(`Error en transacción: ${err.error?.mensaje || 'Error desconocido'}`);
+      error: (err: any) => {
+        console.log(`Error en transacción: ${err.error?.mensaje || 'Error desconocido'}`);
       }
     });
   }
 
   ngOnDestroy() {
-    // Desuscripción automática de todos los observables abiertos
     this.subs.unsubscribe();
   }
 }

@@ -5,6 +5,7 @@ import { RouterModule } from '@angular/router';
 import { TiendaService } from '../../services/tienda';
 import { SocketService } from '../../services/socket';
 import { AuthService } from '../../services/auth';
+import { CarritoService } from '../../services/carrito';
 
 @Component({
   selector: 'app-tienda',
@@ -15,18 +16,27 @@ import { AuthService } from '../../services/auth';
 })
 export class Tienda implements OnInit, OnDestroy {
   productos: any[] = [];
+  masVendidos: any[] = [];
+  ultimosProductos: any[] = [];
   negocios: any[] = [];
   negocioSeleccionado: string = '';
   nuevosProductos: string[] = [];
-  cargando = true;
+  cargando: boolean = true;
   usuarioActual: any = null;
+  carritoAbierto: boolean = false;
+  productoSeleccionado: any = null;
+  modalDetalleAbierto: boolean = false;
   private socketSub: any;
+
+  // Carrusel
+  slideActual: number = 0;
 
   constructor(
     private tiendaService: TiendaService,
     private socketService: SocketService,
     private authService: AuthService,
-    private cdr: ChangeDetectorRef  // ← Agregado para forzar detección de cambios
+    private carritoService: CarritoService,
+    private cdr: ChangeDetectorRef
   ) { }
 
   ngOnInit() {
@@ -45,29 +55,33 @@ export class Tienda implements OnInit, OnDestroy {
   cargarDatos() {
     this.cargando = true;
 
-    // Cargar productos
     this.tiendaService.obtenerProductos(this.negocioSeleccionado || undefined)
       .subscribe({
-        next: (data) => {
+        next: (data: any[]) => {
           this.productos = data;
+          // Últimos 5 para el carrusel
+          this.ultimosProductos = data.slice(0, 5);
+          // Simular más vendidos (menor stock = más vendido)
+          this.masVendidos = [...data]
+            .sort((a, b) => a.stock - b.stock)
+            .slice(0, 8);
           this.cargando = false;
-          this.cdr.detectChanges();  // ← Forzar detección de cambios
+          this.cdr.detectChanges();
         },
-        error: (err) => {
+        error: (err: any) => {
           console.error('Error cargando productos:', err);
           this.cargando = false;
-          this.cdr.detectChanges();  // ← Forzar detección de cambios
+          this.cdr.detectChanges();
         }
       });
 
-    // Cargar negocios para el filtro
     this.tiendaService.obtenerNegocios()
       .subscribe({
-        next: (data) => {
+        next: (data: any[]) => {
           this.negocios = data;
-          this.cdr.detectChanges();  // ← Forzar detección de cambios
+          this.cdr.detectChanges();
         },
-        error: (err) => console.error('Error cargando negocios:', err)
+        error: (err: any) => console.error('Error cargando negocios:', err)
       });
   }
 
@@ -80,12 +94,12 @@ export class Tienda implements OnInit, OnDestroy {
     if (!socket) return;
 
     this.socketSub = (producto: any) => {
-      // Solo agregar si coincide con el filtro actual
       if (!this.negocioSeleccionado || producto.negocio?.slug === this.negocioSeleccionado) {
         this.productos.unshift(producto);
+        this.ultimosProductos.unshift(producto);
+        if (this.ultimosProductos.length > 5) this.ultimosProductos.pop();
         this.nuevosProductos.push(producto.id);
 
-        // Quitar indicador después de 10 segundos
         setTimeout(() => {
           this.nuevosProductos = this.nuevosProductos.filter(id => id !== producto.id);
           this.cdr.detectChanges();
@@ -98,6 +112,70 @@ export class Tienda implements OnInit, OnDestroy {
     socket.on('nuevo_producto', this.socketSub);
   }
 
+  // === CARRUSEL ===
+  siguienteSlide() {
+    this.slideActual = (this.slideActual + 1) % this.ultimosProductos.length;
+  }
+
+  anteriorSlide() {
+    this.slideActual = (this.slideActual - 1 + this.ultimosProductos.length) % this.ultimosProductos.length;
+  }
+
+  irASlide(index: number) {
+    this.slideActual = index;
+  }
+
+  // === CARRITO ===
+  toggleCarrito() {
+    this.carritoAbierto = !this.carritoAbierto;
+  }
+
+  agregarAlCarrito(producto: any, event?: Event) {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    this.carritoService.agregarProducto(producto);
+    // Animación breve
+    const boton = event?.target as HTMLElement;
+    if (boton) {
+      boton.classList.add('scale-90');
+      setTimeout(() => boton.classList.remove('scale-90'), 150);
+    }
+  }
+
+  eliminarDelCarrito(productoId: string) {
+    this.carritoService.eliminarProducto(productoId);
+  }
+
+  actualizarCantidad(productoId: string, cantidad: number) {
+    this.carritoService.actualizarCantidad(productoId, cantidad);
+  }
+
+  get carrito(): any[] {
+    return this.carritoService.obtenerCarrito();
+  }
+
+  get totalCarrito(): number {
+    return this.carritoService.obtenerTotal();
+  }
+
+  get itemsCarrito(): number {
+    return this.carritoService.contarItems();
+  }
+
+  // === DETALLE PRODUCTO ===
+  abrirDetalle(producto: any) {
+    this.productoSeleccionado = producto;
+    this.modalDetalleAbierto = true;
+  }
+
+  cerrarDetalle() {
+    this.modalDetalleAbierto = false;
+    this.productoSeleccionado = null;
+  }
+
+  // === UTILIDADES ===
   productoEsNuevo(productoId: string): boolean {
     return this.nuevosProductos.includes(productoId);
   }
@@ -108,11 +186,6 @@ export class Tienda implements OnInit, OnDestroy {
       primerNuevo.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
     this.nuevosProductos = [];
-  }
-
-  // Método helper para verificar si hay sesión
-  estaAutenticado(): boolean {
-    return !!this.authService.getSocioActual();
   }
 
   irALogin() {

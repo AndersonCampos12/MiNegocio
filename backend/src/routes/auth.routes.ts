@@ -21,7 +21,7 @@ router.post('/admin/crear-empresa', verificarToken, verificarRol(['SUPERADMIN'])
 // ==========================================
 // RUTAS PÚBLICAS (Clientes y Logins generales)
 // ==========================================
-router.post('/cliente/registro', async (req, res) => {
+router.post('/admin/registro', async (req, res) => {
     try {
         // El body DEBE incluir: nombre, email, password, y slug (de la tienda)
         const cliente = await authService.registrarCliente(req.body);

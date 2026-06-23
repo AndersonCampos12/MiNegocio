@@ -1,0 +1,182 @@
+<div class="min-h-screen bg-gray-50">
+    <app-admin-layout [usuario]="usuarioActual" [rol]="rolActual" (onCerrarSesion)="cerrarSesion()">
+    </app-admin-layout>
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="flex items-center gap-4 mb-8">
+            <a routerLink="/admin/dashboard"
+                class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">{{ esSuperadmin ? 'Gestión Global de Empresas' : 'Perfil de
+                    Mi Empresa' }}</h1>
+                <p class="text-sm text-gray-500">{{ esSuperadmin ? 'Administra los inquilinos (tenants) del sistema' :
+                    'Actualiza la información de tu negocio' }}</p>
+            </div>
+        </div>
+
+        @if (esSuperadmin) {
+        <div class="mb-4 flex justify-end">
+            <button (click)="abrirModal()"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm text-sm font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Nueva Empresa
+            </button>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <table class="w-full text-left">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                        <th class="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Empresa</th>
+                        <th class="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Slug (ID)
+                        </th>
+                        <th class="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Plan</th>
+                        <th class="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
+                        <th class="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">
+                            Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    @for (empresa of empresas; track empresa.id) {
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-5 py-4 font-medium text-gray-900">{{ empresa.nombre }}</td>
+                        <td class="px-5 py-4 text-sm text-gray-500 font-mono">{{ empresa.slug }}</td>
+                        <td class="px-5 py-4 text-sm text-gray-700 font-medium">{{ empresa.plan }}</td>
+                        <td class="px-5 py-4">
+                            <span class="px-2.5 py-1 text-xs font-semibold rounded-full"
+                                [ngClass]="{'bg-green-100 text-green-700': empresa.estado === 'ACTIVO', 'bg-yellow-100 text-yellow-700': empresa.estado === 'PENDIENTE', 'bg-red-100 text-red-700': empresa.estado === 'BLOQUEADO'}">
+                                {{ empresa.estado }}
+                            </span>
+                        </td>
+                        <td class="px-5 py-4 text-right">
+                            <button (click)="abrirModal(empresa)"
+                                class="text-sm text-blue-600 hover:text-blue-800 font-medium px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors">Editar</button>
+                        </td>
+                    </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (mostrarModal) {
+        <div class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-xl">
+                <div class="px-6 py-5 border-b border-gray-100">
+                    <h2 class="text-lg font-bold text-gray-900">{{ esEdicion ? 'Editar Empresa' : 'Alta de Nueva
+                        Empresa' }}</h2>
+                </div>
+                <div class="px-6 py-5 space-y-5">
+                    <div>
+                        <h3
+                            class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4 pb-2 border-b border-gray-100">
+                            Datos de la Empresa</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1.5">Nombre</label>
+                                <input type="text" [(ngModel)]="formulario.nombre"
+                                    class="w-full border border-gray-300 px-3 py-2.5 rounded-lg text-sm text-gray-900 bg-white outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow placeholder-gray-400">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1.5">Slug</label>
+                                <input type="text" [(ngModel)]="formulario.slug"
+                                    class="w-full border border-gray-300 px-3 py-2.5 rounded-lg text-sm text-gray-900 bg-white outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow placeholder-gray-400 font-mono">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1.5">Plan</label>
+                                <select [(ngModel)]="formulario.plan"
+                                    class="w-full border border-gray-300 px-3 py-2.5 rounded-lg text-sm text-gray-900 bg-white outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow">
+                                    <option value="BASICO">Básico</option>
+                                    <option value="MULTI">Multi</option>
+                                    <option value="PREMIUM">Premium</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1.5">Estado</label>
+                                <select [(ngModel)]="formulario.estado"
+                                    class="w-full border border-gray-300 px-3 py-2.5 rounded-lg text-sm text-gray-900 bg-white outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow">
+                                    <option value="PENDIENTE">Pendiente</option>
+                                    <option value="ACTIVO">Activo</option>
+                                    <option value="BLOQUEADO">Bloqueado</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (!esEdicion) {
+                    <div>
+                        <h3
+                            class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4 pb-2 border-b border-gray-100">
+                            Cuenta del Administrador</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1.5">Nombre Completo</label>
+                                <input type="text" [(ngModel)]="formulario.adminNombre"
+                                    class="w-full border border-gray-300 px-3 py-2.5 rounded-lg text-sm text-gray-900 bg-white outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow placeholder-gray-400">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+                                <input type="email" [(ngModel)]="formulario.adminEmail"
+                                    class="w-full border border-gray-300 px-3 py-2.5 rounded-lg text-sm text-gray-900 bg-white outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow placeholder-gray-400">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1.5">Contraseña</label>
+                                <input type="password" [(ngModel)]="formulario.adminPassword"
+                                    class="w-full border border-gray-300 px-3 py-2.5 rounded-lg text-sm text-gray-900 bg-white outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow placeholder-gray-400">
+                            </div>
+                        </div>
+                    </div>
+                    }
+                </div>
+                <div class="px-6 py-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-100">
+                    <button (click)="cerrarModal()"
+                        class="px-4 py-2.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 font-medium hover:bg-gray-50 transition-colors">Cancelar</button>
+                    <button (click)="guardar()"
+                        class="px-4 py-2.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-sm transition-colors">Guardar</button>
+                </div>
+            </div>
+        </div>
+        }
+        }
+
+        @else {
+        <div class="max-w-2xl bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Nombre Comercial</label>
+                    <input type="text" [(ngModel)]="formulario.nombre"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 bg-white outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow placeholder-gray-400">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Identificador Único (Slug)</label>
+                    <input type="text" [(ngModel)]="formulario.slug"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 bg-white font-mono outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow placeholder-gray-400">
+                    <p class="text-xs text-gray-500 mt-1.5">Este identificador se usa para la URL de tu tienda o
+                        facturas.</p>
+                </div>
+                <div class="bg-gray-50 px-5 py-4 rounded-lg flex items-center justify-between border border-gray-200">
+                    <div>
+                        <p class="text-sm font-semibold text-gray-700">Plan de Suscripción</p>
+                        <p class="text-sm text-gray-500 mt-0.5">Plan actual: <span class="font-bold text-gray-900">{{
+                                formulario.plan }}</span></p>
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold"
+                        [ngClass]="{'bg-green-100 text-green-700': formulario.estado === 'ACTIVO', 'bg-yellow-100 text-yellow-700': formulario.estado === 'PENDIENTE', 'bg-red-100 text-red-700': formulario.estado === 'BLOQUEADO'}">
+                        {{ formulario.estado }}
+                    </span>
+                </div>
+                <div class="pt-6 border-t border-gray-100 flex justify-end">
+                    <button (click)="guardar()"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg shadow-sm font-medium text-sm transition-colors">
+                        Actualizar Información
+                    </button>
+                </div>
+            </div>
+        </div>
+        }
+    </main>
+</div>

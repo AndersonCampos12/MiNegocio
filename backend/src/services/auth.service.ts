@@ -120,7 +120,7 @@ export class AuthService {
     }
 
     // 4. LOGIN GOOGLE UNIFICADO (Marketplace)
-    async loginGoogle(tokenGoogle: string) { // NUEVO: Ya no exigimos slugTienda
+    async loginGoogle(tokenGoogle: string) {
         try {
             const ticket = await googleClient.verifyIdToken({ idToken: tokenGoogle, audience: CLIENT_ID });
             const payload = ticket.getPayload();
@@ -132,7 +132,6 @@ export class AuthService {
             });
 
             if (socio) {
-                // Si existe y tiene un negocio asignado, verificamos que no esté bloqueado
                 if (socio.negocio) {
                     if (socio.negocio.estado === 'PENDIENTE') {
                         throw new Error('Tu cuenta está en revisión. Un administrador debe aprobar tu solicitud.');
@@ -142,31 +141,43 @@ export class AuthService {
                     }
                 }
             } else {
-                // ES UN CLIENTE NUEVO - Lo creamos global
                 const passwordAleatoria = Math.random().toString(36).slice(-12);
                 const salt = await bcrypt.genSalt(10);
                 const hashedRandomPass = await bcrypt.hash(passwordAleatoria, salt);
-
                 socio = await prisma.socio.create({
                     data: {
                         nombre: payload.name || 'Usuario Google',
                         email: payload.email,
                         password: hashedRandomPass,
-                        rol: Rol.CLIENTE // Nace global, sin negocioId
+                        rol: Rol.CLIENTE
                     },
                     include: { negocio: true }
                 });
             }
 
+            // ✅ JWT idéntico al login normal (añadido nombre)
             const tokenLocal = jwt.sign(
-                { id: socio.id, email: socio.email, rol: socio.rol, negocioId: socio.negocioId },
-                process.env.JWT_SECRET || 'tu_firma_secreta',
+                {
+                    id: socio.id,
+                    nombre: socio.nombre,
+                    rol: socio.rol,
+                    negocioId: socio.negocioId
+                },
+                process.env.JWT_SECRET as string,
                 { expiresIn: '8h' }
             );
 
+            // ✅ Respuesta idéntica al login normal (añadido negocioId, unificado socio/usuario)
             return {
                 token: tokenLocal,
-                usuario: { id: socio.id, nombre: socio.nombre, email: socio.email, rol: socio.rol, slug: socio.negocio?.slug }
+                socio: {
+                    id: socio.id,
+                    nombre: socio.nombre,
+                    email: socio.email,
+                    rol: socio.rol,
+                    negocioId: socio.negocioId,
+                    slug: socio.negocio?.slug
+                }
             };
         } catch (error) {
             console.error('Error en loginGoogle:', error);

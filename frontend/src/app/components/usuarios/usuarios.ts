@@ -1,10 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UsuarioService } from '../../services/usuario';
 import { AdminLayout } from '../admin-layout/admin-layout';
 import { HttpClient } from '@angular/common/http';
 import { RouterModule } from '@angular/router'; // <-- AGREGAR ESTO
+import { AuthService } from '../../services/auth';
 
 @Component({
   selector: 'app-usuarios',
@@ -12,12 +13,16 @@ import { RouterModule } from '@angular/router'; // <-- AGREGAR ESTO
   imports: [CommonModule, FormsModule, AdminLayout, RouterModule],
   templateUrl: './usuarios.html'
 })
-export class Usuarios implements OnInit {
+export class Usuarios implements OnInit, OnDestroy {
+  private sub: any;
   usuarios: any[] = [];
   mostrarModal = false;
   esEdicion = false;
   usuarioLogueado: any = null;
   empresas: any[] = [];
+
+  usuarioActual: any = null;
+  rolActual: string | null = null;
 
   // Estado del formulario
   formulario: any = {
@@ -33,26 +38,43 @@ export class Usuarios implements OnInit {
 
   constructor(
     private usuarioService: UsuarioService,
-    private http: HttpClient
+    private http: HttpClient,
+    private authService: AuthService,
+    private cdr: ChangeDetectorRef
   ) { }
 
   ngOnInit() {
-    const userStr = localStorage.getItem('usuario');
-    if (userStr) {
-      this.usuarioLogueado = JSON.parse(userStr);
-    }
+    this.cargarDatosUsuario();
     this.cargarUsuarios();
-
-    // Si es superadmin, cargamos la lista de empresas para el select
-    if (this.esSuperadmin) {
+    if (this.esSuperadmin) {  // esSuperadmin ahora lee de usuarioLogueado que ya fue asignado
       this.cargarEmpresas();
     }
   }
 
+  cargarDatosUsuario() {
+    this.rolActual = this.authService.getRole();
+    const usuarioStr = localStorage.getItem('usuario');
+    if (usuarioStr) {
+      this.usuarioActual = JSON.parse(usuarioStr);
+      this.usuarioLogueado = this.usuarioActual; // asignado ANTES de que esSuperadmin se evalúe
+    }
+  }
+
+  cerrarSesion(): void {
+    this.authService.logout();
+    window.location.href = '/admin/login';
+  }
+
+  ngOnDestroy() {
+    this.sub?.unsubscribe();
+  }
+
   cargarEmpresas() {
-    // Petición directa para no crear un servicio entero ahora mismo
     this.http.get<any[]>('http://localhost:3000/api/negocios').subscribe({
-      next: (data) => this.empresas = data,
+      next: (data) => {
+        this.empresas = data;
+        this.cdr.detectChanges(); // ✅
+      },
       error: (err) => console.error('Error al cargar empresas', err)
     });
   }
@@ -63,7 +85,10 @@ export class Usuarios implements OnInit {
 
   cargarUsuarios() {
     this.usuarioService.obtenerUsuarios().subscribe({
-      next: (data) => this.usuarios = data,
+      next: (data) => {
+        this.usuarios = data;
+        this.cdr.detectChanges(); // ✅
+      },
       error: (err) => console.error('Error cargando usuarios:', err)
     });
   }

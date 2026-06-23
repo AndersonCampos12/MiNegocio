@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth-guard';
 import { guestGuard } from './guards/guest-guard';
-import { roleGuard } from './guards/role-guard'; // <-- 1. SOLUCIÓN: Importamos el roleGuard
+import { roleGuard } from './guards/role-guard';
 
 import { Splash } from './components/splash/splash';
 import { Welcome } from './components/welcome/welcome';
@@ -13,36 +13,51 @@ import { Caja } from './components/caja/caja';
 import { Inventario } from './components/inventario/inventario';
 import { CrearProducto } from './components/crear-producto/crear-producto';
 import { Reportes } from './components/reportes/reportes';
-// 2. SOLUCIÓN: Eliminamos la importación estática de 'Usuarios' de aquí arriba
+import { Negocios } from './components/negocios/negocios';
+import { Tienda } from './components/tienda/tienda';
 
 export const routes: Routes = [
-    // PUBLICO
+    // =========================
+    // RUTAS PARA INVITADOS (Sin sesión)
+    // =========================
     { path: '', component: Splash, canActivate: [guestGuard] },
     { path: 'welcome', component: Welcome, canActivate: [guestGuard] },
-
-    // =========================
-    // PORTAL ADMINISTRATIVO
-    // =========================
     { path: 'admin/login', component: Login, canActivate: [guestGuard] },
     { path: 'admin/registro', component: Registro, canActivate: [guestGuard] },
-    { path: 'verificacion', component: Verificacion, canActivate: [guestGuard] },
 
     // =========================
-    // DASHBOARD ADMIN
+    // E-COMMERCE / TIENDA
     // =========================
-    { path: 'admin/dashboard', component: Dashboard, canActivate: [authGuard] },
-    { path: 'admin/caja', component: Caja, canActivate: [authGuard] },
-    { path: 'admin/inventario', component: Inventario, canActivate: [authGuard] },
-    { path: 'admin/crear-producto', component: CrearProducto, canActivate: [authGuard] },
-    { path: 'admin/reportes', component: Reportes, canActivate: [authGuard] },
+    // ERROR CORREGIDO: Se quita el guestGuard. 
+    // Puedes dejarla pública (sin guards) o ponerle [authGuard] si solo clientes registrados pueden comprar.
+    { path: 'tienda', component: Tienda, canActivate: [authGuard] },
 
-    // NUEVA RUTA DE USUARIOS (Carga perezosa correcta)
+    // =========================
+    // PORTAL ADMINISTRATIVO PROTEGIDO (Nadie con rol CLIENTE entra aquí)
+    // =========================
     {
-        path: 'admin/usuarios',
-        loadComponent: () => import('./components/usuarios/usuarios').then(m => m.Usuarios),
-        canActivate: [roleGuard],
-        data: { roles: ['SUPERADMIN', 'ADMINISTRADOR'] }
+        path: 'admin',
+        canActivate: [authGuard, roleGuard],
+        // Definimos quiénes pueden entrar a este bloque
+        data: { roles: ['SUPERADMIN', 'ADMINISTRADOR', 'VENDEDOR', 'CAJERO'] },
+        children: [
+            { path: 'dashboard', component: Dashboard },
+            { path: 'caja', component: Caja },
+            { path: 'inventario', component: Inventario },
+            { path: 'crear-producto', component: CrearProducto },
+            { path: 'reportes', component: Reportes },
+            { path: 'negocios', component: Negocios },
+            {
+                path: 'usuarios',
+                loadComponent: () => import('./components/usuarios/usuarios').then(m => m.Usuarios),
+                // roleGuard extra para sobre-proteger esta ruta hija
+                data: { roles: ['SUPERADMIN', 'ADMINISTRADOR'] }
+            }
+        ]
     },
+
+    // Otras rutas protegidas que no son exclusivas de admin
+    { path: 'verificacion', component: Verificacion, canActivate: [authGuard] },
 
     { path: '**', redirectTo: '' }
 ];

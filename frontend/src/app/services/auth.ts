@@ -1,53 +1,48 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
-import { SocketService } from './socket'; // <-- NUEVO IMPORT
+import { Observable, tap, BehaviorSubject } from 'rxjs';
+import { SocketService } from './socket';
 
-@Injectable({
-    providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class AuthService {
-    private apiUrl = 'http://localhost:3000/api/auth'; // La ruta de tu backend
+    private apiUrl = 'http://localhost:3000/api/auth';
+
+    // ✅ Estado reactivo del usuario
+    private usuarioSubject = new BehaviorSubject<any>(this.getSocioActual());
+    usuario$ = this.usuarioSubject.asObservable();
 
     constructor(private http: HttpClient, private socketService: SocketService) { }
 
-    // 1. Registro de negocio y administrador
     registrar(datos: any): Observable<any> {
         return this.http.post(`${this.apiUrl}/registro`, datos);
     }
 
-    // NUEVO: Registro exclusivo para clientes
     registrarCliente(datos: any) {
-        // Apuntamos al nuevo endpoint público que configuramos en auth.routes.ts
-        return this.http.post(`${this.apiUrl}/cliente/registro`, datos);
+        return this.http.post(`${this.apiUrl}/admin/registro`, datos);
     }
 
-    // DE PASO: Actualiza tu antiguo método de registro para que quede para el SuperAdmin
     crearEmpresaAdmin(datos: any) {
         return this.http.post(`${this.apiUrl}/admin/crear-empresa`, datos);
     }
 
-    // 2. Login tradicional
     login(email: string, password: string): Observable<any> {
         return this.http.post(`${this.apiUrl}/login`, { email, password }).pipe(
             tap((respuesta: any) => {
-                // Si hay token, lo guardamos en el navegador
                 if (respuesta.token) {
                     localStorage.setItem('token', respuesta.token);
                     localStorage.setItem('usuario', JSON.stringify(respuesta.socio));
+                    this.usuarioSubject.next(respuesta.socio); // ✅ notifica
                 }
             })
         );
     }
 
-    // 3. Login con Google (OAuth)
     loginGoogle(tokenGoogle: string): Observable<any> {
-        // Enviamos el token de Google a tu ruta recién creada
         return this.http.post(`${this.apiUrl}/google`, { token: tokenGoogle }).pipe(
-            // Usamos 'tap' para guardar el token en localStorage silenciosamente antes de que el componente reaccione
             tap((res: any) => {
                 localStorage.setItem('token', res.token);
-                localStorage.setItem('usuario', JSON.stringify(res.usuario));
+                localStorage.setItem('usuario', JSON.stringify(res.socio)); // ✅ era res.usuario
+                this.usuarioSubject.next(res.socio); // ✅ notifica
             })
         );
     }
@@ -57,7 +52,6 @@ export class AuthService {
         return raw ? JSON.parse(raw) : null;
     }
 
-    // Utilidades para verificar la sesión
     getToken(): string | null {
         return localStorage.getItem('token');
     }
@@ -69,21 +63,11 @@ export class AuthService {
     logout(): void {
         localStorage.removeItem('token');
         localStorage.removeItem('usuario');
-
-        // 🔥 ¡AQUÍ MUERE EL SOCKET! Desconectamos limpiamente
+        this.usuarioSubject.next(null); // ✅ limpia el estado
         this.socketService.desconectar();
     }
 
     getRole(): string | null {
-        const usuarioStr = localStorage.getItem('usuario');
-        if (!usuarioStr) return null;
-
-        try {
-            const usuario = JSON.parse(usuarioStr);
-            return usuario.rol || null;
-        } catch (error) {
-            console.error('Error al parsear el usuario del localStorage', error);
-            return null;
-        }
+        return this.usuarioSubject.getValue()?.rol || null;
     }
 }

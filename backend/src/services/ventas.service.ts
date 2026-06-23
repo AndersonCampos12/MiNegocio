@@ -67,16 +67,20 @@ export class VentasService {
                     data: { stock: { decrement: item.cantidad } }
                 });
 
-                // Asegurar que tu evento coincida con el que escucha tu frontend
-                io.emit('stock:actualizado', {
+                io.to(data.negocioId).emit('stock:actualizado', {
                     productoId: item.productoId,
                     nuevoStock: actualizado.stock
                 });
             }
 
-            logger.info(`Venta ${venta.id} completada. Total: $${totalCalculado}`, 'VentasService');
+            // CORRECCIÓN AQUÍ: Cambiado totalCalculated por totalCalculado
+            io.to(data.negocioId).emit('venta:registrada', {
+                ticket: venta.id.split('-')[0].toUpperCase(),
+                total: totalCalculado, // 👈 Variable corregida
+                metodoPago: data.metodoPago
+            });
 
-            // 🚨 CRUCIAL: Retornar la venta completa para que Angular capture el ID y abra la factura
+            logger.info(`Venta ${venta.id} completada. Total: $${totalCalculado}`, 'VentasService');
             return venta;
         });
     }

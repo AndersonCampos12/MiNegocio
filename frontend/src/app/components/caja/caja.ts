@@ -12,6 +12,7 @@ import { ClientesService } from '../../services/clientes';
 import { AdminLayout } from '../admin-layout/admin-layout';
 import { AuthService } from '../../services/auth';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { ToastService } from '../../services/toast';
 
 @Component({
   selector: 'app-caja',
@@ -59,6 +60,7 @@ export class Caja implements OnInit, OnDestroy {
   private subs = new Subscription();
 
   constructor(
+    private toast: ToastService,
     private productoService: ProductoService,
     private ventasService: VentasService,
     private clientesService: ClientesService,
@@ -178,24 +180,24 @@ export class Caja implements OnInit, OnDestroy {
       next: (clienteCreado: any) => {
         this.seleccionarCliente(clienteCreado);
         this.mostrarModalCliente = false;
-        alert('Cliente registrado exitosamente');
+        this.toast.warning('Cliente registrado exitosamente');
       },
       error: (err: any) => {
-        alert(`Error al crear cliente: ${err.error?.mensaje || err.message}`);
+        this.toast.warning(`Error al crear cliente: ${err.error?.mensaje || err.message}`);
       }
     });
   }
 
   agregarAlCarrito(prod: any) {
     if (prod.stock <= 0) {
-      alert('No queda stock disponible de este producto');
+      this.toast.warning('No queda stock disponible de este producto');
       return;
     }
 
     if (this.carrito.has(prod.id)) {
       const item = this.carrito.get(prod.id)!;
       if (item.cantidad >= prod.stock) {
-        alert('No puedes agregar más del stock existente');
+        this.toast.warning('No puedes agregar más del stock existente');
         return;
       }
       item.cantidad++;
@@ -251,11 +253,11 @@ export class Caja implements OnInit, OnDestroy {
 
   finalizarVenta() {
     if (this.carrito.size === 0) {
-      alert('El carrito está vacío');
+      this.toast.warning('El carrito está vacío');
       return;
     }
     if (!this.clienteSeleccionado) {
-      alert('Debe seleccionar un cliente antes de facturar');
+      this.toast.warning('Debe seleccionar un cliente antes de facturar');
       return;
     }
 
@@ -272,7 +274,7 @@ export class Caja implements OnInit, OnDestroy {
 
     this.ventasService.registrarVenta(payloadFactura).subscribe({
       next: (resultadoVenta: any) => {
-        alert('¡Venta realizada con éxito! Generando factura...');
+        this.toast.warning('¡Venta realizada con éxito! Generando factura...');
 
         // 🚀 EJECUCIÓN AUTOMÁTICA: Si el backend retorna el objeto creado con su ID (resultadoVenta.id)
         if (resultadoVenta && resultadoVenta.id) {

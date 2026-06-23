@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { ReporteService } from '../../services/reporte';
 import { AdminLayout } from '../admin-layout/admin-layout';
 import { AuthService } from '../../services/auth';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-reportes',
@@ -24,10 +25,14 @@ export class Reportes implements OnInit {
   usuarioActual: any = null;
   rolActual: string | null = null;
 
+  mostrarVisor = false;
+  urlFacturaSegura: SafeResourceUrl | null = null;
+
   constructor(
     private reporteService: ReporteService,
     private cdr: ChangeDetectorRef,
-    private authService: AuthService
+    private authService: AuthService,
+    private sanitizer: DomSanitizer
   ) { }
 
   ngOnInit() {
@@ -76,11 +81,15 @@ export class Reportes implements OnInit {
     return Math.max(...this.metricas.ultimasVentas.map((v: any) => v.total));
   }
 
-  // <-- NUEVO: Método para imprimir/descargar factura
   imprimirFactura(ventaId: string) {
-    // Aquí luego conectarás con tu backend (ej. usando FPDF o librerías similares)
-    // para generar y devolver el PDF de la factura
-    console.log('Generando factura para la venta:', ventaId);
-    alert('Generando factura #' + ventaId);
+    const urlFactura = `http://localhost:3000/api/reportes/factura/${ventaId}`;
+    this.urlFacturaSegura = this.sanitizer.bypassSecurityTrustResourceUrl(urlFactura);
+    this.mostrarVisor = true;
+    this.cdr.detectChanges();
+  }
+
+  cerrarVisor() {
+    this.mostrarVisor = false;
+    this.urlFacturaSegura = null;
   }
 }

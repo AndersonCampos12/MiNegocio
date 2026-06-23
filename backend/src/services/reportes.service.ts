@@ -26,11 +26,16 @@ export class ReportesService {
             orderBy: { creadoEn: 'desc' },
             take: 5,
             include: {
-                detalles: true // Incluimos esto para saber cuántos items compraron en cada venta
+                detalles: true, // Incluimos esto para saber cuántos items compraron
+                socio: {        // 👤 NUEVO: Incluimos la relación del vendedor/cajero
+                    select: {
+                        nombre: true
+                    }
+                }
             }
         });
 
-        // 4. Empaquetamos todo y lo mandamos limpiecito al Frontend
+        // 4. Empaquetamos todo y lo mandamos listo al Frontend
         return {
             ingresosTotales: agregaciones._sum.total || 0,
             totalVentas: agregaciones._count.id || 0,
@@ -38,10 +43,11 @@ export class ReportesService {
 
             // Formateamos las ventas para que el HTML de Angular las dibuje fácil
             ultimasVentas: ultimasVentas.map(venta => ({
-                id: venta.id.split('-')[0], // Extraemos solo el primer bloque del UUID para que se vea estético
+                id: venta.id, // 🚨 CORRECCIÓN: Mandar completo para que funcione el botón de imprimir factura
                 total: venta.total,
                 fecha: venta.creadoEn,
-                // Sumamos la cantidad de todos los detalles de esa venta
+                metodoPago: venta.metodoPago, // 💳 NUEVO: Enviamos el método de pago (EFECTIVO, PAYPHONE, KUSHKI)
+                socio: venta.socio,           // 👤 NUEVO: Pasamos el objeto del socio con su nombre
                 cantidadItems: venta.detalles.reduce((acc, det) => acc + det.cantidad, 0)
             }))
         };

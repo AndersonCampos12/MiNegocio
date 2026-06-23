@@ -81,6 +81,9 @@ model Venta {
   impuestos  Decimal        @default(0)
   total      Decimal
   
+  // 💻 NUEVO CAMPO: Para almacenar el método de pago seleccionado en la caja
+  metodoPago String         @default("EFECTIVO") @map("metodo_pago")
+  
   creadoEn   DateTime       @default(now()) @map("creado_en")
   detalles   DetalleVenta[]
 

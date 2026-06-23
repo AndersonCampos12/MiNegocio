@@ -14,7 +14,9 @@ export const ventasRoutesFactory = (io: Server) => {
             try {
                 const socioId = req.socio?.id;
                 const negocioId = req.socio?.negocioId;
-                const { detalles } = req.body;
+
+                // 1. Extraemos los nuevos campos que envía la caja (Angular)
+                const { detalles, clienteId, metodoPago } = req.body;
 
                 if (!negocioId) {
                     return res.status(400).json({
@@ -22,11 +24,21 @@ export const ventasRoutesFactory = (io: Server) => {
                     });
                 }
 
+                if (!clienteId || !metodoPago) {
+                    return res.status(400).json({
+                        mensaje: 'Faltan datos de facturación (Cliente o Método de pago).'
+                    });
+                }
+
+                // 2. Pasamos el objeto completo al servicio
                 const venta = await ventasService.registrarVenta(
-                    { socioId, negocioId, detalles },
+                    { socioId, negocioId, clienteId, metodoPago, detalles },
                     io
                 );
-                res.status(201).json({ mensaje: 'Venta registrada con éxito', venta });
+
+                // 3. 🚨 IMPORTANTE: Retornamos el objeto `venta` directamente 
+                // para que Angular pueda leer `resultadoVenta.id` e imprimir la factura
+                res.status(201).json(venta);
             } catch (error: any) {
                 res.status(400).json({ mensaje: error.message });
             }

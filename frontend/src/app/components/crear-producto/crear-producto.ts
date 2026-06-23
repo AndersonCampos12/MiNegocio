@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { ProductoService } from '../../services/producto';
 import { AdminLayout } from '../admin-layout/admin-layout';
 import { AuthService } from '../../services/auth';
+import { ToastService } from '../../services/toast';
 
 @Component({
   selector: 'app-crear-producto',
@@ -25,6 +26,7 @@ export class CrearProducto {
   rolActual: string | null = null;
 
   constructor(
+    private toast: ToastService,
     private productoService: ProductoService,
     private router: Router,
     private authService: AuthService
@@ -52,13 +54,13 @@ export class CrearProducto {
     if (file) {
       // Validar tipo de archivo
       if (!file.type.startsWith('image/')) {
-        alert('Por favor selecciona un archivo de imagen válido');
+        this.toast.warning('Por favor selecciona un archivo de imagen válido');
         return;
       }
 
       // Validar tamaño (máximo 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        alert('La imagen no debe superar los 5MB');
+        this.toast.warning('La imagen no debe superar los 5MB');
         return;
       }
 
@@ -76,13 +78,13 @@ export class CrearProducto {
 
   guardar() {
     if (!this.nombre.trim()) {
-      return alert('El nombre del producto es obligatorio');
+      return this.toast.warning('El nombre del producto es obligatorio');
     }
     if (!this.valor || this.valor <= 0) {
-      return alert('El precio debe ser mayor a 0');
+      return this.toast.warning('El precio debe ser mayor a 0');
     }
     if (this.stock === null || this.stock < 0) {
-      return alert('El stock debe ser un número válido');
+      return this.toast.warning('El stock debe ser un número válido');
     }
 
     const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
@@ -111,7 +113,7 @@ export class CrearProducto {
       error: (err) => {
         this.guardando = false;
         const mensaje = err.error?.mensaje || err.message || 'Error al crear el producto';
-        alert('Error: ' + mensaje);
+        this.toast.warning('Error: ' + mensaje);
       }
     });
   }

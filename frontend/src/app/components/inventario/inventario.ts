@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { ProductoService } from '../../services/producto';
 import { AdminLayout } from '../admin-layout/admin-layout';
 import { AuthService } from '../../services/auth';
+import { ToastService } from '../../services/toast';
 
 @Component({
   selector: 'app-inventario',
@@ -22,6 +23,7 @@ export class Inventario implements OnInit {
   rolActual: string | null = null;
 
   constructor(
+    private toast: ToastService,
     private productoService: ProductoService,
     private cdr: ChangeDetectorRef,
     private authService: AuthService
@@ -82,7 +84,7 @@ export class Inventario implements OnInit {
           this.cerrarModal();
           this.cargarInventario();
         },
-        error: (err) => alert('Error al actualizar el producto')
+        error: (err) => this.toast.error('Error al actualizar el producto')
       });
   }
 
@@ -92,7 +94,7 @@ export class Inventario implements OnInit {
         next: () => {
           this.cargarInventario();
         },
-        error: (err) => alert('Error al eliminar el producto')
+        error: (err) => this.toast.error('Error al eliminar el producto')
       });
     }
   }

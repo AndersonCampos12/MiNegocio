@@ -6,6 +6,7 @@ import { AdminLayout } from '../admin-layout/admin-layout';
 import { HttpClient } from '@angular/common/http';
 import { RouterModule } from '@angular/router'; // <-- AGREGAR ESTO
 import { AuthService } from '../../services/auth';
+import { ToastService } from '../../services/toast';
 
 @Component({
   selector: 'app-usuarios',
@@ -37,6 +38,7 @@ export class Usuarios implements OnInit, OnDestroy {
   rolesDisponibles = ['ADMINISTRADOR', 'VENDEDOR', 'CAJERO', 'CLIENTE'];
 
   constructor(
+    private toast: ToastService,
     private usuarioService: UsuarioService,
     private http: HttpClient,
     private authService: AuthService,
@@ -116,7 +118,7 @@ export class Usuarios implements OnInit, OnDestroy {
           this.cargarUsuarios();
           this.cerrarModal();
         },
-        error: (err) => alert(err.error?.mensaje || 'Error al actualizar')
+        error: (err) => this.toast.error(err.error?.mensaje || 'Error al actualizar')
       });
     } else {
       this.usuarioService.crearUsuario(this.formulario).subscribe({
@@ -124,7 +126,7 @@ export class Usuarios implements OnInit, OnDestroy {
           this.cargarUsuarios();
           this.cerrarModal();
         },
-        error: (err) => alert(err.error?.mensaje || 'Error al crear')
+        error: (err) => this.toast.error(err.error?.mensaje || 'Error al crear')
       });
     }
   }

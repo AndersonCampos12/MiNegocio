@@ -5,6 +5,7 @@ import { RouterModule } from '@angular/router';
 import { AdminLayout } from '../admin-layout/admin-layout'; // Verifica esta ruta
 import { NegociosService } from '../../services/negocios';
 import { AuthService } from '../../services/auth'; // Asegúrate de la ruta correcta a tu auth.ts
+import { ToastService } from '../../services/toast';
 
 @Component({
   selector: 'app-negocios',
@@ -34,6 +35,7 @@ export class Negocios implements OnInit, OnDestroy {
   };
 
   constructor(
+    private toast: ToastService,
     private negociosService: NegociosService,
     private authService: AuthService,
     private cdr: ChangeDetectorRef
@@ -108,13 +110,13 @@ export class Negocios implements OnInit, OnDestroy {
       // Editar
       this.negociosService.actualizarEmpresa(this.formulario.id, this.formulario).subscribe({
         next: () => {
-          alert('Datos de la empresa actualizados.');
+          this.toast.success('Datos de la empresa actualizados.');
           if (this.esSuperadmin) {
             this.cargarTodasLasEmpresas();
             this.cerrarModal();
           }
         },
-        error: (err) => alert(err.error?.mensaje || 'Error al actualizar')
+        error: (err) => this.toast.error(err.error?.mensaje || 'Error al actualizar')
       });
     } else {
       // Crear nueva (Mapeo exacto a tu servicio backend)
@@ -128,11 +130,11 @@ export class Negocios implements OnInit, OnDestroy {
 
       this.negociosService.crearEmpresaYAdmin(payload).subscribe({
         next: () => {
-          alert('Empresa creada exitosamente.');
+          this.toast.success('Empresa creada exitosamente.');
           this.cargarTodasLasEmpresas();
           this.cerrarModal();
         },
-        error: (err) => alert(err.error?.mensaje || 'Error al crear la empresa')
+        error: (err) => this.toast.error(err.error?.mensaje || 'Error al crear la empresa')
       });
     }
   }

@@ -1,4 +1,3 @@
-// frontend/src/app/components/nav-bar/nav-bar.ts
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
@@ -11,6 +10,7 @@ import { RouterModule } from '@angular/router';
     <header class="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-10 backdrop-blur-sm bg-white/95">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
         <div class="flex items-center justify-between">
+          
           <!-- Logo / Marca -->
           <div class="flex items-center gap-3">
             <div class="flex items-center gap-2">
@@ -19,6 +19,15 @@ import { RouterModule } from '@angular/router';
               </svg>
               <span class="text-lg font-bold text-gray-800 hidden sm:block">Mi Negocio</span>
             </div>
+
+            <!-- 🟢 NUEVO: Botón para ir a la Tienda -->
+            <a routerLink="/tienda"
+               class="hidden sm:flex items-center gap-1.5 ml-4 px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-all active:scale-95">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+              Ver Tienda
+            </a>
           </div>
 
           <!-- Perfil de usuario -->
@@ -54,6 +63,17 @@ import { RouterModule } from '@angular/router';
               <span class="hidden sm:inline">Salir</span>
             </button>
           </div>
+        </div>
+
+        <!-- 🟢 NUEVO: Botón móvil para ir a la Tienda (visible solo en pantallas pequeñas) -->
+        <div class="sm:hidden mt-2 pt-2 border-t border-gray-100">
+          <a routerLink="/tienda"
+             class="flex items-center justify-center gap-1.5 w-full px-3 py-2 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-all active:scale-95">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+            Ver Tienda
+          </a>
         </div>
       </div>
     </header>

@@ -1,16 +1,16 @@
 import { Router, Response } from 'express';
 import { verificarToken, verificarRol, AuthRequest } from '../middlewares/auth.middleware';
 import { crearNegocioConAdmin } from '../services/negocios.service';
-import { prisma } from '../config/database'; // <-- ESTA ES LA LÍNEA QUE TE FALTA
+import { prisma } from '../config/database';
 
 const router = Router();
 
-// Ruta EXCLUSIVA para SUPERADMIN
+// ==========================================
+// EXCLUSIVO SUPERADMIN
+// ==========================================
 router.post('/crear-empresa', verificarToken, verificarRol(['SUPERADMIN']), async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         const resultado = await crearNegocioConAdmin(req.body);
-
-        // Evitamos devolver el password hasheado en la respuesta
         const { password, ...adminSinPassword } = resultado.admin;
 
         res.status(201).json({
@@ -19,7 +19,6 @@ router.post('/crear-empresa', verificarToken, verificarRol(['SUPERADMIN']), asyn
             admin: adminSinPassword
         });
     } catch (error: any) {
-        // Manejo de error si el email o el slug ya existen (Unique constraint en Prisma)
         if (error.code === 'P2002') {
             res.status(400).json({ mensaje: 'El email o el slug (identificador) ya están en uso.' });
             return;
@@ -28,20 +27,71 @@ router.post('/crear-empresa', verificarToken, verificarRol(['SUPERADMIN']), asyn
     }
 });
 
-router.get('/',
-    verificarToken,
-    verificarRol(['SUPERADMIN']),
-    async (req, res: Response) => {
-        try {
-            const negocios = await prisma.negocio.findMany({
-                where: { estado: 'ACTIVO' }, // O quita el where si quieres ver los PENDIENTES
-                orderBy: { creadoEn: 'desc' }
-            });
-            res.json(negocios);
-        } catch (error) {
-            res.status(500).json({ mensaje: 'Error al obtener empresas' });
-        }
+router.get('/', verificarToken, verificarRol(['SUPERADMIN']), async (req: AuthRequest, res: Response) => {
+    try {
+        // Quitamos el filtro de estado para que el Superadmin vea todas (incluso las bloqueadas)
+        const negocios = await prisma.negocio.findMany({
+            orderBy: { creadoEn: 'desc' }
+        });
+        res.json(negocios);
+    } catch (error) {
+        res.status(500).json({ mensaje: 'Error al obtener empresas' });
     }
-);
+});
+
+// ==========================================
+// PARA ADMINISTRADORES Y SUPERADMIN
+// ==========================================
+router.get('/mi-empresa', verificarToken, verificarRol(['ADMINISTRADOR']), async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        const negocioId = req.socio?.negocioId;
+        if (!negocioId) {
+            res.status(400).json({ mensaje: 'No tienes una empresa asignada' });
+            return;
+        }
+
+        const negocio = await prisma.negocio.findUnique({
+            where: { id: negocioId }
+        });
+        res.json(negocio);
+    } catch (error) {
+        res.status(500).json({ mensaje: 'Error al obtener los datos de la empresa' });
+    }
+});
+
+router.put('/:id', verificarToken, verificarRol(['SUPERADMIN', 'ADMINISTRADOR']), async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const { nombre, slug, plan, estado } = req.body;
+        const rol = req.socio?.rol;
+        const socioNegocioId = req.socio?.negocioId;
+
+        if (rol === 'ADMINISTRADOR' && id !== socioNegocioId) {
+            res.status(403).json({ mensaje: 'Acceso denegado: No puedes editar una empresa ajena.' });
+            return;
+        }
+
+        const datosActualizacion: any = { nombre, slug };
+
+        // Solo el Superadmin puede cambiar planes y estados
+        if (rol === 'SUPERADMIN') {
+            if (plan) datosActualizacion.plan = plan;
+            if (estado) datosActualizacion.estado = estado;
+        }
+
+        const negocioActualizado = await prisma.negocio.update({
+            where: { id: String(id) }, // <-- Forzamos el tipo a String
+            data: datosActualizacion
+        });
+
+        res.json({ mensaje: 'Empresa actualizada', negocio: negocioActualizado });
+    } catch (error: any) {
+        if (error.code === 'P2002') {
+            res.status(400).json({ mensaje: 'El slug ya está en uso por otra empresa.' });
+            return;
+        }
+        res.status(500).json({ mensaje: 'Error al actualizar la empresa' });
+    }
+});
 
 export default router;

@@ -17,7 +17,8 @@ export class Reportes implements OnInit {
     ingresosTotales: 0,
     totalVentas: 0,
     alertasStock: 0,
-    ultimasVentas: []
+    ultimasVentas: [],
+    topProductos: [] // <-- NUEVO: Para "productos que salen"
   };
   cargando = true;
   usuarioActual: any = null;
@@ -63,17 +64,23 @@ export class Reportes implements OnInit {
     });
   }
 
-  // Método para calcular la altura de las barras del gráfico
   calcularAlturaBarra(valor: number, maximo: number): number {
     if (maximo === 0) return 0;
     return (valor / maximo) * 100;
   }
 
-  // Método para obtener el valor máximo de las ventas
   maxTotalVentas(): number {
     if (!this.metricas.ultimasVentas || this.metricas.ultimasVentas.length === 0) {
       return 1;
     }
     return Math.max(...this.metricas.ultimasVentas.map((v: any) => v.total));
+  }
+
+  // <-- NUEVO: Método para imprimir/descargar factura
+  imprimirFactura(ventaId: string) {
+    // Aquí luego conectarás con tu backend (ej. usando FPDF o librerías similares)
+    // para generar y devolver el PDF de la factura
+    console.log('Generando factura para la venta:', ventaId);
+    alert('Generando factura #' + ventaId);
   }
 }

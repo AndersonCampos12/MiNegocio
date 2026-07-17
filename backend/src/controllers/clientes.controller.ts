@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { ClientesService } from '../services/clientes.service';
+import { AppError } from '../errors/app.error';
 
 const clientesService = new ClientesService();
 
@@ -21,7 +22,10 @@ export const crearClienteCtrl = async (req: Request, res: Response) => {
         const nuevoCliente = await clientesService.crearCliente(req.body);
         return res.status(201).json(nuevoCliente);
     } catch (error: any) {
-        // Retornamos 400 (Bad Request) con el mensaje exacto controlado en el servicio
-        return res.status(400).json({ mensaje: error.message });
+        if (error instanceof AppError) {
+            return res.status(error.statusCode).json({ mensaje: error.message });
+        }
+        console.error('Error inesperado al crear cliente:', error);
+        return res.status(500).json({ mensaje: 'No fue posible registrar el cliente. Inténtalo nuevamente.' });
     }
 };

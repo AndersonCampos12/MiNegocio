@@ -1,5 +1,14 @@
 import { prisma } from '../config/database';
-import { Prisma } from '@prisma/client';
+import { AppError } from '../errors/app.error';
+import { isPrismaError, prismaErrorFields } from '../utils/prisma-error';
+import { z } from 'zod';
+
+const clienteSchema = z.object({
+    nombre: z.string().trim().min(2, 'El nombre debe tener al menos 2 caracteres.').max(100),
+    email: z.string().trim().toLowerCase().email('Ingresa un correo electrónico válido.'),
+    cedula: z.string().trim().regex(/^\d{10}(\d{3})?$/, 'La cédula debe tener 10 dígitos y el RUC 13 dígitos.'),
+    negocioId: z.string().uuid('La empresa seleccionada no es válida.')
+});
 
 export class ClientesService {
 
@@ -20,30 +29,40 @@ export class ClientesService {
 
     // Crear cliente controlando restricciones de unicidad
     async crearCliente(data: any) {
+        const validacion = clienteSchema.safeParse(data);
+        if (!validacion.success) {
+            throw new AppError(validacion.error.issues[0]?.message || 'Los datos del cliente no son válidos.', 422);
+        }
+
         try {
+            const cliente = validacion.data;
             return await prisma.socio.create({
                 data: {
-                    nombre: data.nombre,
-                    email: data.email,
-                    cedula: data.cedula,
+                    nombre: cliente.nombre,
+                    email: cliente.email,
+                    cedula: cliente.cedula,
                     password: 'CLIENTE_SIN_ACCESO_PASSWORD', // Contraseña dummy ya que es solo para facturación
                     rol: 'CLIENTE',
-                    negocioId: data.negocioId
+                    negocioId: cliente.negocioId
                 }
             });
         } catch (error) {
             // P2002 es el código de Prisma para violaciones de campos únicos (@unique)
-            if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-                const target = (error.meta?.target as string[]) || [];
+            if (isPrismaError(error, 'P2002')) {
+                const target = prismaErrorFields(error);
 
                 if (target.includes('cedula')) {
-                    throw new Error('La cédula o RUC ya se encuentra registrada en este negocio.');
+                    throw new AppError('La cédula o RUC ya se encuentra registrada.', 409);
                 }
                 if (target.includes('email')) {
-                    throw new Error('El correo electrónico ya está registrado.');
+                    throw new AppError('El correo electrónico ya está registrado.', 409);
                 }
+                throw new AppError('Ya existe un cliente con esos datos.', 409);
             }
-            throw error;
+            if (isPrismaError(error, 'P2003')) {
+                throw new AppError('La empresa indicada no existe.', 422);
+            }
+            throw new AppError('No fue posible registrar el cliente. Inténtalo nuevamente.', 500);
         }
     }
 }

@@ -13,7 +13,15 @@ export class VentasService {
 
     constructor(private http: HttpClient) {
         // Conexión al servidor WebSocket de Express
-        this.socket = io('http://localhost:3000');
+        const token = localStorage.getItem('token');
+        this.socket = io('http://localhost:3000', {
+            auth: { token },
+            transports: ['websocket']
+        });
+
+        this.socket.on('connect_error', (error) => {
+            console.warn('No se pudo conectar al canal de inventario:', error.message);
+        });
 
         // Escucha eventos globales de stock modificados por otros terminales
         this.socket.on('stock:actualizado', (data) => {

@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormControl, FormGroup, Validators } from '@angular/forms';
 import {
   Subscription, debounceTime, distinctUntilChanged,
-  switchMap, of, catchError
+  switchMap, of, catchError, finalize
 } from 'rxjs';
 import { ProductoService } from '../../services/producto';
 import { VentasService } from '../../services/ventas';
@@ -13,6 +13,7 @@ import { AdminLayout } from '../admin-layout/admin-layout';
 import { AuthService } from '../../services/auth';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ToastService } from '../../services/toast';
+import { obtenerMensajeHttp } from '../../utils/http-error';
 
 @Component({
   selector: 'app-caja',
@@ -48,10 +49,11 @@ export class Caja implements OnInit, OnDestroy {
   // Modal de Registro Rápido de Cliente
   mostrarModalCliente = false;
   clienteForm = new FormGroup({
-    cedula: new FormControl('', Validators.required),
-    nombre: new FormControl('', Validators.required),
-    email: new FormControl('', [Validators.required, Validators.email])
+    cedula: new FormControl('', [Validators.required, Validators.pattern(/^\d{10}(\d{3})?$/)]),
+    nombre: new FormControl('', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]),
+    email: new FormControl('', [Validators.required, Validators.email, Validators.maxLength(254)])
   });
+  guardandoCliente = false;
 
   // Datos de Sesión y Usuario
   usuarioActual: any = null;
@@ -73,6 +75,7 @@ export class Caja implements OnInit, OnDestroy {
     this.cargarDatosUsuario();
     this.cargarInventario();
     this.configurarBuscadorClientes();
+    this.limpiarErroresDuplicadosAlEditar();
 
     this.subs.add(
       this.ventasService.onStockActualizado().subscribe((data) => {
@@ -83,6 +86,19 @@ export class Caja implements OnInit, OnDestroy {
         }
       })
     );
+  }
+
+  private limpiarErroresDuplicadosAlEditar() {
+    const controles = [this.clienteForm.controls.email, this.clienteForm.controls.cedula];
+
+    controles.forEach(control => {
+      this.subs.add(control.valueChanges.subscribe(() => {
+        if (!control.hasError('duplicado')) return;
+
+        const { duplicado, ...otrosErrores } = control.errors ?? {};
+        control.setErrors(Object.keys(otrosErrores).length ? otrosErrores : null, { emitEvent: false });
+      }));
+    });
   }
 
   cargarDatosUsuario() {
@@ -168,22 +184,42 @@ export class Caja implements OnInit, OnDestroy {
   }
 
   guardarNuevoCliente() {
-    if (this.clienteForm.invalid) return;
+    if (this.guardandoCliente) return;
+
+    if (this.clienteForm.invalid) {
+      this.clienteForm.markAllAsTouched();
+      return;
+    }
 
     const nuevoCliente = {
       ...this.clienteForm.value,
       rol: 'CLIENTE',
-      negocioId: this.usuarioActual.negocioId
+      nombre: this.clienteForm.controls.nombre.value?.trim(),
+      email: this.clienteForm.controls.email.value?.trim().toLowerCase(),
+      cedula: this.clienteForm.controls.cedula.value?.trim(),
+      negocioId: this.usuarioActual?.negocioId
     };
 
-    this.clientesService.crearCliente(nuevoCliente).subscribe({
+    this.guardandoCliente = true;
+    this.cdr.detectChanges();
+
+    this.clientesService.crearCliente(nuevoCliente).pipe(
+      finalize(() => {
+        this.guardandoCliente = false;
+        this.cdr.detectChanges();
+      })
+    ).subscribe({
       next: (clienteCreado: any) => {
         this.seleccionarCliente(clienteCreado);
         this.mostrarModalCliente = false;
-        this.toast.warning('Cliente registrado exitosamente');
+        this.toast.success('Cliente registrado exitosamente');
       },
       error: (err: any) => {
-        this.toast.warning(`Error al crear cliente: ${err.error?.mensaje || err.message}`);
+        const mensaje = obtenerMensajeHttp(err, 'No fue posible registrar el cliente.');
+        if (/correo/i.test(mensaje)) this.clienteForm.controls.email.setErrors({ duplicado: true });
+        if (/cédula|RUC/i.test(mensaje)) this.clienteForm.controls.cedula.setErrors({ duplicado: true });
+        this.toast.error(mensaje);
+        this.cdr.detectChanges();
       }
     });
   }

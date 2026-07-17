@@ -179,33 +179,47 @@
                         class="relative bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-lg w-full">
                         <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                             <h3 class="text-lg font-bold text-gray-800 mb-4">Registrar Nuevo Cliente</h3>
-                            <form [formGroup]="clienteForm" class="space-y-4">
+                            <form [formGroup]="clienteForm" (ngSubmit)="guardarNuevoCliente()" class="space-y-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Cédula / RUC</label>
                                     <input type="text" formControlName="cedula"
                                         class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                                         placeholder="Ej: 2350xxxxxx">
+                                    @if (clienteForm.controls.cedula.touched && clienteForm.controls.cedula.invalid) {
+                                    <p class="mt-1 text-xs text-red-600">
+                                        {{ clienteForm.controls.cedula.hasError('duplicado') ? 'Esta cédula o RUC ya está registrada.' : 'Ingresa una cédula de 10 dígitos o un RUC de 13 dígitos.' }}
+                                    </p>
+                                    }
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Nombre Completo</label>
                                     <input type="text" formControlName="nombre"
                                         class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                                         placeholder="Ej: Juan Pérez">
+                                    @if (clienteForm.controls.nombre.touched && clienteForm.controls.nombre.invalid) {
+                                    <p class="mt-1 text-xs text-red-600">El nombre debe tener entre 2 y 100 caracteres.</p>
+                                    }
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Email</label>
                                     <input type="email" formControlName="email"
                                         class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                                         placeholder="juan@correo.com">
+                                    @if (clienteForm.controls.email.touched && clienteForm.controls.email.invalid) {
+                                    <p class="mt-1 text-xs text-red-600">
+                                        {{ clienteForm.controls.email.hasError('duplicado') ? 'Este correo ya está registrado.' : 'Ingresa un correo electrónico válido.' }}
+                                    </p>
+                                    }
                                 </div>
                             </form>
                         </div>
                         <div class="bg-gray-50 px-4 py-3 sm:px-6 flex justify-end gap-2 border-t border-gray-100">
                             <button type="button" (click)="mostrarModalCliente = false"
                                 class="w-full inline-flex justify-center rounded-xl border border-gray-300 px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:w-auto sm:text-sm">Cancelar</button>
-                            <button type="button" (click)="guardarNuevoCliente()" [disabled]="clienteForm.invalid"
-                                class="w-full inline-flex justify-center rounded-xl border border-transparent px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 disabled:opacity-50 sm:w-auto sm:text-sm">Guardar
-                                y Seleccionar</button>
+                            <button type="button" (click)="guardarNuevoCliente()" [disabled]="guardandoCliente"
+                                class="w-full inline-flex justify-center rounded-xl border border-transparent px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto sm:text-sm">
+                                {{ guardandoCliente ? 'Guardando...' : 'Guardar y Seleccionar' }}
+                            </button>
                         </div>
                     </div>
                 </div>

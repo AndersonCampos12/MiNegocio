@@ -36,9 +36,25 @@
             </div>
         </div>
 
+        <!-- Filtro por estado -->
+        <div class="mb-5 inline-flex rounded-xl bg-white border border-gray-200 p-1 shadow-sm" role="tablist">
+            <button type="button" (click)="cambiarEstado('activos')"
+                [class]="estadoSeleccionado === 'activos' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'"
+                class="px-4 py-2 rounded-lg text-sm font-semibold transition-all" role="tab"
+                [attr.aria-selected]="estadoSeleccionado === 'activos'">
+                Activos
+            </button>
+            <button type="button" (click)="cambiarEstado('desactivados')"
+                [class]="estadoSeleccionado === 'desactivados' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'"
+                class="px-4 py-2 rounded-lg text-sm font-semibold transition-all" role="tab"
+                [attr.aria-selected]="estadoSeleccionado === 'desactivados'">
+                Desactivados
+            </button>
+        </div>
+
         <!-- Tabla de productos (vista escritorio) -->
         <div class="hidden lg:block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div class="overflow-x-auto">
+            <div class="overflow-x-hidden">
                 <table class="w-full">
                     <thead>
                         <tr class="bg-gray-50 border-b border-gray-100">
@@ -96,8 +112,8 @@
                                 </span>
                             </td>
                             <td class="py-4 px-6">
-                                <div class="flex items-center justify-center gap-2">
-                                    <button (click)="abrirModal(prod)"
+                                <div class="flex items-center justify-center gap-2" *ngIf="esAdminOrSuperAdmin(); else sinAcciones">
+                                    <button *ngIf="estadoSeleccionado === 'activos'" (click)="abrirModal(prod)"
                                         class="p-2 rounded-lg bg-gray-50 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-colors"
                                         title="Editar producto">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -105,15 +121,24 @@
                                                 d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                         </svg>
                                     </button>
-                                    <button (click)="eliminarProducto(prod.id)"
+                                    <button *ngIf="estadoSeleccionado === 'activos'" (click)="eliminarProducto(prod)" [disabled]="desactivandoId === prod.id"
                                         class="p-2 rounded-lg bg-gray-50 text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors"
-                                        title="Eliminar producto">
+                                        title="Desactivar producto">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                         </svg>
                                     </button>
+                                    <button *ngIf="estadoSeleccionado === 'desactivados'" (click)="reactivarProducto(prod)"
+                                        [disabled]="reactivandoId === prod.id"
+                                        class="px-3 py-2 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors text-xs font-semibold disabled:opacity-50"
+                                        title="Reactivar producto">
+                                        {{ reactivandoId === prod.id ? 'Reactivando...' : 'Reactivar' }}
+                                    </button>
                                 </div>
+                                <ng-template #sinAcciones>
+                                    <span class="block text-center text-xs text-gray-400">Solo lectura</span>
+                                </ng-template>
                             </td>
                         </tr>
                         } @empty {
@@ -125,9 +150,8 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                                             d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                                     </svg>
-                                    <p class="text-gray-500 font-medium">No hay productos registrados</p>
-                                    <p class="text-gray-400 text-sm mt-1">Comienza agregando tu primer producto al
-                                        inventario</p>
+                                    <p class="text-gray-500 font-medium">{{ estadoSeleccionado === 'activos' ? 'No hay productos activos' : 'No hay productos desactivados' }}</p>
+                                    <p class="text-gray-400 text-sm mt-1">{{ estadoSeleccionado === 'activos' ? 'Comienza agregando tu primer producto al inventario' : 'Los productos que desactives aparecerán aquí' }}</p>
                                 </div>
                             </td>
                         </tr>
@@ -172,20 +196,26 @@
                     <p class="text-xs text-gray-500 mb-3 line-clamp-2">{{ prod.descripcion || 'Sin descripción' }}</p>
                     <div class="flex items-center justify-between">
                         <span class="text-lg font-bold text-blue-600">${{ prod.valor | number:'1.2-2' }}</span>
-                        <div class="flex gap-2">
-                            <button (click)="abrirModal(prod)"
+                        <div class="flex gap-2" *ngIf="esAdminOrSuperAdmin()">
+                            <button *ngIf="estadoSeleccionado === 'activos'" (click)="abrirModal(prod)"
                                 class="p-2 rounded-lg bg-gray-50 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
                             </button>
-                            <button (click)="eliminarProducto(prod.id)"
+                            <button *ngIf="estadoSeleccionado === 'activos'" (click)="eliminarProducto(prod)" [disabled]="desactivandoId === prod.id"
+                                title="Desactivar producto"
                                 class="p-2 rounded-lg bg-gray-50 text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
+                            </button>
+                            <button *ngIf="estadoSeleccionado === 'desactivados'" (click)="reactivarProducto(prod)"
+                                [disabled]="reactivandoId === prod.id"
+                                class="px-3 py-2 rounded-lg bg-green-50 text-green-700 text-xs font-semibold disabled:opacity-50">
+                                {{ reactivandoId === prod.id ? 'Reactivando...' : 'Reactivar' }}
                             </button>
                         </div>
                     </div>
@@ -197,20 +227,52 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                         d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                 </svg>
-                <p class="text-gray-500 font-medium">No hay productos registrados</p>
-                <p class="text-gray-400 text-sm mt-1">Comienza agregando tu primer producto</p>
+                <p class="text-gray-500 font-medium">{{ estadoSeleccionado === 'activos' ? 'No hay productos activos' : 'No hay productos desactivados' }}</p>
+                <p class="text-gray-400 text-sm mt-1">{{ estadoSeleccionado === 'activos' ? 'Comienza agregando tu primer producto' : 'Los productos que desactives aparecerán aquí' }}</p>
             </div>
             }
         </div>
 
         <!-- Botón flotante para móvil -->
-        <button routerLink="/admin/crear-producto"
+        <button *ngIf="esAdminOrSuperAdmin()" routerLink="/admin/crear-producto"
             class="lg:hidden fixed bottom-8 right-8 w-14 h-14 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/25 hover:from-blue-700 hover:to-blue-800 transition-all active:scale-95 z-20">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
         </button>
     </main>
+
+    <!-- Confirmación de desactivación -->
+    @if (productoPorDesactivar) {
+    <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        (click)="cerrarConfirmacionDesactivar()">
+        <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-gray-100 overflow-hidden"
+            role="dialog" aria-modal="true" aria-labelledby="titulo-desactivar" (click)="$event.stopPropagation()">
+            <div class="p-6">
+                <div class="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center mb-4">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v3m0 4h.01M10.29 3.86l-7.82 13.55A2 2 0 004.2 20h15.6a2 2 0 001.73-2.59L13.71 3.86a2 2 0 00-3.42 0z" />
+                    </svg>
+                </div>
+                <h3 id="titulo-desactivar" class="text-lg font-bold text-gray-800">Desactivar producto</h3>
+                <p class="text-sm text-gray-600 mt-2">
+                    ¿Deseas desactivar <strong>{{ productoPorDesactivar.nombre }}</strong>? Dejará de mostrarse, pero conservará su historial.
+                </p>
+            </div>
+            <div class="border-t border-gray-100 px-6 py-4 bg-gray-50 flex gap-3">
+                <button type="button" (click)="cerrarConfirmacionDesactivar()" [disabled]="!!desactivandoId"
+                    class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-100 disabled:opacity-50">
+                    Cancelar
+                </button>
+                <button type="button" (click)="confirmarDesactivacion()" [disabled]="!!desactivandoId"
+                    class="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 disabled:opacity-50">
+                    {{ desactivandoId ? 'Desactivando...' : 'Sí, desactivar' }}
+                </button>
+            </div>
+        </div>
+    </div>
+    }
 
     <!-- Modal de edición -->
     @if (modalAbierto) {
@@ -228,48 +290,63 @@
             </div>
 
             <!-- Formulario -->
+            <form #editForm="ngForm" (ngSubmit)="guardarCambios()">
             <div class="p-6 space-y-5">
                 <div>
-                    <label class="block text-xs font-semibold text-gray-700 mb-2">Nombre del Producto</label>
-                    <input [(ngModel)]="productoEditando.nombre" type="text"
+                    <label class="block text-xs font-semibold text-gray-700 mb-2">Nombre del Producto *</label>
+                    <input [(ngModel)]="productoEditando.nombre" name="nombre" #nombreEdit="ngModel" type="text"
+                        required maxlength="120"
                         class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                         placeholder="Ej: Laptop HP">
+                    @if (nombreEdit.invalid && nombreEdit.touched) {
+                    <p class="text-xs text-red-600 mt-1">Ingresa un nombre de máximo 120 caracteres.</p>
+                    }
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-gray-700 mb-2">Precio ($)</label>
-                        <input [(ngModel)]="productoEditando.valor" type="number"
+                        <input [(ngModel)]="productoEditando.valor" name="valor" #valorEdit="ngModel" type="number"
+                            required min="0.01"
                             class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                             placeholder="0.00" step="0.01">
+                        @if (valorEdit.invalid && valorEdit.touched) {
+                        <p class="text-xs text-red-600 mt-1">El precio debe ser mayor a cero.</p>
+                        }
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-700 mb-2">Stock</label>
-                        <input [(ngModel)]="productoEditando.stock" type="number"
+                        <input [(ngModel)]="productoEditando.stock" name="stock" #stockEdit="ngModel" type="number"
+                            required min="0" step="1"
                             class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                             placeholder="0">
+                        @if (stockEdit.invalid && stockEdit.touched) {
+                        <p class="text-xs text-red-600 mt-1">Usa un entero igual o mayor a cero.</p>
+                        }
                     </div>
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-700 mb-2">Descripción</label>
-                    <textarea [(ngModel)]="productoEditando.descripcion" rows="3"
+                    <textarea [(ngModel)]="productoEditando.descripcion" name="descripcion" rows="3" maxlength="500"
                         class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
                         placeholder="Descripción del producto..."></textarea>
+                    <p class="text-xs text-gray-400 mt-1">{{ (productoEditando.descripcion || '').length }}/500 caracteres</p>
                 </div>
             </div>
 
             <!-- Botones del modal -->
             <div class="border-t border-gray-100 px-6 py-4 bg-gray-50 flex gap-3">
-                <button (click)="cerrarModal()"
+                <button type="button" (click)="cerrarModal()" [disabled]="guardando"
                     class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-100 transition-colors">
                     Cancelar
                 </button>
-                <button (click)="guardarCambios()"
-                    class="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl text-sm font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg shadow-blue-500/25">
-                    Guardar Cambios
+                <button type="submit" [disabled]="editForm.invalid || guardando"
+                    class="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl text-sm font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg shadow-blue-500/25 disabled:opacity-50 disabled:cursor-not-allowed">
+                    {{ guardando ? 'Guardando...' : 'Guardar Cambios' }}
                 </button>
             </div>
+            </form>
         </div>
     </div>
     }

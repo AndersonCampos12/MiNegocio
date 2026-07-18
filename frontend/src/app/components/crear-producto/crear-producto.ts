@@ -6,6 +6,8 @@ import { ProductoService } from '../../services/producto';
 import { AdminLayout } from '../admin-layout/admin-layout';
 import { AuthService } from '../../services/auth';
 import { ToastService } from '../../services/toast';
+import { obtenerMensajeHttp } from '../../utils/http-error';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-crear-producto',
@@ -77,23 +79,28 @@ export class CrearProducto {
   }
 
   guardar() {
+    const valor = Number(this.valor);
+    const stock = Number(this.stock);
+
     if (!this.nombre.trim()) {
       return this.toast.warning('El nombre del producto es obligatorio');
     }
-    if (!this.valor || this.valor <= 0) {
+    if (this.valor === null || !Number.isFinite(valor) || valor <= 0) {
       return this.toast.warning('El precio debe ser mayor a 0');
     }
-    if (this.stock === null || this.stock < 0) {
-      return this.toast.warning('El stock debe ser un número válido');
+    if (this.stock === null || !Number.isInteger(stock) || stock < 0) {
+      return this.toast.warning('El stock debe ser un entero igual o mayor a 0');
     }
+    if (this.nombre.trim().length > 120) return this.toast.warning('El nombre no puede superar los 120 caracteres');
+    if (this.descripcion.trim().length > 500) return this.toast.warning('La descripción no puede superar los 500 caracteres');
 
     const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
-    const negocioId = usuario.negocioId;
+    const negocioId = localStorage.getItem('negocioSeleccionado') || usuario.negocioId;
 
     const formData = new FormData();
     formData.append('nombre', this.nombre.trim());
-    formData.append('valor', this.valor.toString());
-    formData.append('stock', this.stock.toString());
+    formData.append('valor', valor.toString());
+    formData.append('stock', stock.toString());
     formData.append('descripcion', this.descripcion.trim());
 
     if (negocioId) {
@@ -105,15 +112,13 @@ export class CrearProducto {
     }
 
     this.guardando = true;
-    this.productoService.crearProducto(formData).subscribe({
+    this.productoService.crearProducto(formData).pipe(finalize(() => this.guardando = false)).subscribe({
       next: () => {
-        this.guardando = false;
+        this.toast.success('Producto creado correctamente.');
         this.router.navigate(['/admin/inventario']);
       },
       error: (err) => {
-        this.guardando = false;
-        const mensaje = err.error?.mensaje || err.message || 'Error al crear el producto';
-        this.toast.warning('Error: ' + mensaje);
+        this.toast.error(obtenerMensajeHttp(err, 'No fue posible crear el producto.'));
       }
     });
   }

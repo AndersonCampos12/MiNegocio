@@ -1,7 +1,23 @@
 import { prisma } from '../config/database';
 import jwt from 'jsonwebtoken';
+import { AppError } from '../errors/app.error';
 
 export class ProductosService {
+
+    private validarDatos(data: any) {
+        const nombre = typeof data.nombre === 'string' ? data.nombre.trim() : '';
+        const descripcion = typeof data.descripcion === 'string' ? data.descripcion.trim() : '';
+        const valor = Number(data.valor);
+        const stock = Number(data.stock);
+
+        if (!nombre) throw new AppError('El nombre del producto es obligatorio.');
+        if (nombre.length > 120) throw new AppError('El nombre no puede superar los 120 caracteres.');
+        if (!Number.isFinite(valor) || valor <= 0) throw new AppError('El precio debe ser mayor a cero.');
+        if (!Number.isInteger(stock) || stock < 0) throw new AppError('El stock debe ser un entero igual o mayor a cero.');
+        if (descripcion.length > 500) throw new AppError('La descripción no puede superar los 500 caracteres.');
+
+        return { nombre, descripcion: descripcion || null, valor, stock };
+    }
 
     // 🛡️ Helper para firmar las URLs
     private firmarImagen(imagenUrl: string | null): string | null {
@@ -18,9 +34,9 @@ export class ProductosService {
         return `/api/productos/ver-imagen/${filename}?firma=${firma}`;
     }
 
-    async obtenerProductos(negocioId: string) {
+    async obtenerProductos(negocioId: string, activo = true) {
         const productos = await prisma.producto.findMany({
-            where: { negocioId, activo: true },
+            where: { negocioId, activo },
             orderBy: { creadoEn: 'desc' }
         });
 
@@ -38,13 +54,11 @@ export class ProductosService {
         descripcion?: string;
         imagenUrl?: string | null;
     }) {
+        const datosValidos = this.validarDatos(data);
         const nuevo = await prisma.producto.create({
             data: {
                 negocioId,
-                nombre: data.nombre,
-                valor: data.valor,
-                stock: data.stock,
-                descripcion: data.descripcion,
+                ...datosValidos,
                 imagenUrl: data.imagenUrl // Guardamos /uploads/archivo.png en BD
             }
         });
@@ -56,14 +70,15 @@ export class ProductosService {
         };
     }
 
-    async actualizarProducto(id: string, data: any) {
+    async actualizarProducto(id: string, negocioId: string, data: any) {
+        const datosValidos = this.validarDatos(data);
+        const producto = await prisma.producto.findFirst({ where: { id, negocioId, activo: true } });
+        if (!producto) throw new AppError('Producto no encontrado.', 404);
+
         const actualizado = await prisma.producto.update({
-            where: { id },
+            where: { id: producto.id },
             data: {
-                nombre: data.nombre,
-                valor: parseFloat(data.valor),
-                stock: parseInt(data.stock, 10),
-                descripcion: data.descripcion
+                ...datosValidos
             }
         });
 
@@ -73,10 +88,22 @@ export class ProductosService {
         };
     }
 
-    async desactivarProducto(id: string) {
+    async desactivarProducto(id: string, negocioId: string) {
+        const producto = await prisma.producto.findFirst({ where: { id, negocioId, activo: true } });
+        if (!producto) throw new AppError('Producto no encontrado.', 404);
         return prisma.producto.update({
-            where: { id },
+            where: { id: producto.id },
             data: { activo: false }
         });
+    }
+
+    async reactivarProducto(id: string, negocioId: string) {
+        const producto = await prisma.producto.findFirst({ where: { id, negocioId, activo: false } });
+        if (!producto) throw new AppError('Producto desactivado no encontrado.', 404);
+        const actualizado = await prisma.producto.update({
+            where: { id: producto.id },
+            data: { activo: true }
+        });
+        return { ...actualizado, imagenUrl: this.firmarImagen(actualizado.imagenUrl) };
     }
 }

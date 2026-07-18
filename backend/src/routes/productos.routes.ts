@@ -10,6 +10,7 @@ import {
     verificarRol,
     AuthRequest
 } from '../middlewares/auth.middleware';
+import { AppError } from '../errors/app.error';
 
 const router = Router();
 const svc = new ProductosService();
@@ -22,7 +23,11 @@ async function resolverNegocioId(req: AuthRequest): Promise<string | null> {
         return (req.query.negocioId || req.body?.negocioId) as string ?? null;
     }
 
-    return negocioId ?? null;
+    if (negocioId) return negocioId;
+
+    // Compatibilidad con sesiones antiguas cuyo token no incluía negocioId.
+    const socio = await prisma.socio.findUnique({ where: { id }, select: { negocioId: true } });
+    return socio?.negocioId ?? null;
 }
 
 // GET /api/productos
@@ -35,7 +40,8 @@ router.get('/',
             if (!negocioId) {
                 return res.status(400).json({ mensaje: 'Falta el negocioId. El SUPERADMIN debe enviarlo como ?negocioId=...' });
             }
-            const productos = await svc.obtenerProductos(negocioId);
+            const activo = req.query.estado === 'desactivados' ? false : true;
+            const productos = await svc.obtenerProductos(negocioId, activo);
             res.json(productos);
         } catch (e) {
             console.error('Error en GET /api/productos:', e);
@@ -94,7 +100,8 @@ router.post('/',
             res.status(201).json(nuevo);
         } catch (e) {
             console.error(e);
-            res.status(500).json({ mensaje: 'Error al crear producto' });
+            if (e instanceof AppError) return res.status(e.statusCode).json({ mensaje: e.message });
+            res.status(500).json({ mensaje: 'No fue posible crear el producto.' });
         }
     }
 );
@@ -140,10 +147,14 @@ router.put('/:id',
     async (req: AuthRequest, res: Response) => {
         try {
             const id = req.params.id as string;
-            const actualizado = await svc.actualizarProducto(id, req.body);
+            const negocioId = await resolverNegocioId(req);
+            if (!negocioId) return res.status(400).json({ mensaje: 'No se pudo determinar el negocio.' });
+            const actualizado = await svc.actualizarProducto(id, negocioId, req.body);
             res.json(actualizado);
         } catch (e) {
-            res.status(500).json({ mensaje: 'Error al actualizar' });
+            if (e instanceof AppError) return res.status(e.statusCode).json({ mensaje: e.message });
+            console.error('Error en PUT /api/productos/:id:', e);
+            res.status(500).json({ mensaje: 'No fue posible actualizar el producto.' });
         }
     }
 );
@@ -155,10 +166,32 @@ router.delete('/:id',
     async (req: AuthRequest, res: Response) => {
         try {
             const id = req.params.id as string;
-            await svc.desactivarProducto(id);
-            res.json({ mensaje: 'Producto descontinuado' });
+            const negocioId = await resolverNegocioId(req);
+            if (!negocioId) return res.status(400).json({ mensaje: 'No se pudo determinar el negocio.' });
+            await svc.desactivarProducto(id, negocioId);
+            res.json({ mensaje: 'Producto desactivado correctamente.' });
         } catch (e) {
-            res.status(500).json({ mensaje: 'Error al eliminar' });
+            if (e instanceof AppError) return res.status(e.statusCode).json({ mensaje: e.message });
+            console.error('Error en DELETE /api/productos/:id:', e);
+            res.status(500).json({ mensaje: 'No fue posible desactivar el producto.' });
+        }
+    }
+);
+
+// PATCH /api/productos/:id/reactivar
+router.patch('/:id/reactivar',
+    verificarToken,
+    verificarRol(['SUPERADMIN', 'ADMINISTRADOR']),
+    async (req: AuthRequest, res: Response) => {
+        try {
+            const negocioId = await resolverNegocioId(req);
+            if (!negocioId) return res.status(400).json({ mensaje: 'No se pudo determinar el negocio.' });
+            const producto = await svc.reactivarProducto(req.params.id as string, negocioId);
+            res.json(producto);
+        } catch (e) {
+            if (e instanceof AppError) return res.status(e.statusCode).json({ mensaje: e.message });
+            console.error('Error en PATCH /api/productos/:id/reactivar:', e);
+            res.status(500).json({ mensaje: 'No fue posible reactivar el producto.' });
         }
     }
 );

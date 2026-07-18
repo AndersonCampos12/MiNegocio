@@ -14,6 +14,7 @@ import { AuthService } from '../../services/auth';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ToastService } from '../../services/toast';
 import { obtenerMensajeHttp } from '../../utils/http-error';
+import { ReporteService } from '../../services/reporte';
 
 @Component({
   selector: 'app-caja',
@@ -29,6 +30,8 @@ export class Caja implements OnInit, OnDestroy {
 
   mostrarVisor = false;
   urlFacturaSegura: SafeResourceUrl | null = null;
+  ventaSeleccionadaId: string | null = null;
+  descargandoFactura = false;
 
   // Totales e Impuestos (IVA 15%)
   subtotal = 0;
@@ -65,6 +68,7 @@ export class Caja implements OnInit, OnDestroy {
     private toast: ToastService,
     private productoService: ProductoService,
     private ventasService: VentasService,
+    private reporteService: ReporteService,
     private clientesService: ClientesService,
     private cdr: ChangeDetectorRef,
     private authService: AuthService,
@@ -275,16 +279,46 @@ export class Caja implements OnInit, OnDestroy {
   }
 
   ejecutarImpresionFactura(ventaId: string) {
-    const urlFactura = `http://localhost:3000/api/reportes/factura/${ventaId}`;
+    const urlFactura = `http://localhost:3000/api/reportes/factura/${ventaId}?autoImprimir=false&estilo=moderno`;
     // Marcamos la URL como segura para que el iframe pueda renderizarla
+    this.ventaSeleccionadaId = ventaId;
     this.urlFacturaSegura = this.sanitizer.bypassSecurityTrustResourceUrl(urlFactura);
     this.mostrarVisor = true;
     this.cdr.detectChanges();
   }
 
+  descargarFacturaSeleccionada() {
+    if (!this.ventaSeleccionadaId || this.descargandoFactura) return;
+
+    const ventaId = this.ventaSeleccionadaId;
+    const numeroFactura = ventaId.split('-')[0].toUpperCase();
+    this.descargandoFactura = true;
+
+    this.subs.add(
+      this.reporteService.descargarFacturaPdf(ventaId).subscribe({
+        next: (pdf) => {
+          const url = URL.createObjectURL(pdf);
+          const enlace = document.createElement('a');
+          enlace.href = url;
+          enlace.download = `factura-${numeroFactura}.pdf`;
+          enlace.click();
+          URL.revokeObjectURL(url);
+          this.descargandoFactura = false;
+          this.toast.success('Factura descargada correctamente');
+        },
+        error: (err) => {
+          console.error('Error descargando factura:', err);
+          this.descargandoFactura = false;
+          this.toast.error('No se pudo descargar la factura');
+        }
+      })
+    );
+  }
+
   cerrarVisor() {
     this.mostrarVisor = false;
     this.urlFacturaSegura = null;
+    this.ventaSeleccionadaId = null;
   }
 
   finalizarVenta() {
@@ -315,6 +349,17 @@ export class Caja implements OnInit, OnDestroy {
         // 🚀 EJECUCIÓN AUTOMÁTICA: Si el backend retorna el objeto creado con su ID (resultadoVenta.id)
         if (resultadoVenta && resultadoVenta.id) {
           this.ejecutarImpresionFactura(resultadoVenta.id);
+          this.subs.add(
+            this.reporteService.enviarFacturaPorCorreo(resultadoVenta.id).subscribe({
+              next: () => {
+                this.toast.success('¡Factura enviada por correo correctamente!');
+              },
+              error: (err: any) => {
+                console.error('Error enviando factura por correo:', err);
+                this.toast.warning('La venta se realizó, pero no se pudo enviar la factura por correo');
+              }
+            })
+          );
         }
 
         // Limpieza de caja

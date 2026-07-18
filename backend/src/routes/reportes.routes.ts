@@ -1,9 +1,14 @@
 import { Router } from 'express';
 import { ReportesService } from '../services/reportes.service';
 import { prisma } from '../config/database';
+import { generarHtmlFactura } from '../templates/factura.template';
+import { PdfService } from '../services/pdf.service';
+import { CorreoService } from '../services/correo.service';
 
 const router = Router();
 const reportesService = new ReportesService();
+const pdfService = new PdfService();
+const correoService = new CorreoService();
 
 router.get('/', async (req, res) => {
     try {
@@ -54,100 +59,116 @@ router.get('/factura/:id', async (req, res) => {
             return res.status(404).send('Factura no encontrada');
         }
 
-        // Estructura HTML autoejecutable para imprimir directamente en formato POS (ticket térmico)
-        const htmlFactura = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <title>Ticket #${venta.id.split('-')[0]}</title>
-            <style>
-                body { 
-                    font-family: 'Courier New', Courier, monospace; 
-                    width: 300px; /* Ancho estándar de ticketera térmica de 80mm */
-                    margin: 0 auto; 
-                    padding: 10px;
-                    font-size: 12px; 
-                    color: #000;
-                }
-                .text-center { text-align: center; }
-                .text-right { text-align: right; }
-                .text-left { text-align: left; }
-                .linea { border-bottom: 1px dashed #000; margin: 10px 0; }
-                table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-                th, td { padding: 4px 0; }
-                .bold { font-weight: bold; }
-            </style>
-        </head>
-        <body>
-            <h2 class="text-center" style="margin-bottom: 5px;">TU NEGOCIO</h2>
-            <p class="text-center" style="margin-top: 0; font-size: 10px;">Comprobante de Venta</p>
-            
-            <div class="linea"></div>
-            
-            <p><span class="bold">Ticket:</span> ${venta.id.split('-')[0].toUpperCase()}</p>
-            <p><span class="bold">Fecha:</span> ${new Date(venta.creadoEn).toLocaleString()}</p>
-            <p><span class="bold">Cliente:</span> ${venta.cliente?.nombre || 'Consumidor Final'}</p>
-            <p><span class="bold">Cajero:</span> ${venta.socio?.nombre || 'Caja Principal'}</p>
-            <p><span class="bold">Método:</span> ${venta.metodoPago}</p>
-            
-            <div class="linea"></div>
-            
-            <table>
-                <thead>
-                    <tr style="border-bottom: 1px solid #000;">
-                        <th class="text-left">Cant</th>
-                        <th class="text-left">Descripción</th>
-                        <th class="text-right">Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${venta.detalles.map(d => `
-                        <tr>
-                            <td class="text-left" style="vertical-align: top;">${d.cantidad}</td>
-                            <td class="text-left" style="padding-right: 5px;">${d.producto.nombre}</td>
-                            <td class="text-right" style="vertical-align: top;">$${(d.cantidad * Number(d.precioUnit)).toFixed(2)}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-            
-            <div class="linea"></div>
-            
-            <table style="font-size: 13px;">
-                <tr>
-                    <td class="text-right">Subtotal:</td>
-                    <td class="text-right">$${Number(venta.subtotal).toFixed(2)}</td>
-                </tr>
-                <tr>
-                    <td class="text-right">IVA (15%):</td>
-                    <td class="text-right">$${Number(venta.impuestos).toFixed(2)}</td>
-                </tr>
-                <tr class="bold" style="font-size: 15px;">
-                    <td class="text-right" style="padding-top: 8px;">TOTAL:</td>
-                    <td class="text-right" style="padding-top: 8px;">$${Number(venta.total).toFixed(2)}</td>
-                </tr>
-            </table>
-            
-            <div class="linea" style="margin-top: 15px;"></div>
-            <p class="text-center bold">¡Gracias por su compra!</p>
-            
-            <script>
-                // Dispara el diálogo de impresión automáticamente y cierra la pestaña al terminar
-                window.onload = function() { 
-                    window.print();
-                    // Opcional: descomenta la siguiente línea si quieres que la pestaña se cierre sola
-                    // window.onafterprint = function() { window.close(); }
-                }
-            </script>
-        </body>
-        </html>
-        `;
+        const autoImprimir = req.query.autoImprimir !== 'false';
+        const estiloModerno = req.query.estilo === 'moderno';
+        const htmlFactura = generarHtmlFactura(venta, { autoImprimir, estiloModerno });
 
         res.send(htmlFactura);
     } catch (error) {
         console.error('Error al generar factura:', error);
         res.status(500).send('Error interno al generar vista de impresión');
+    }
+});
+
+router.get('/factura/:id/pdf', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const venta = await prisma.venta.findUnique({
+            where: { id },
+            include: {
+                cliente: true,
+                socio: true,
+                detalles: {
+                    include: { producto: true }
+                }
+            }
+        });
+
+        if (!venta) {
+            return res.status(404).send('Factura no encontrada');
+        }
+
+        const estiloModerno = req.query.estilo === 'moderno';
+        const htmlFactura = generarHtmlFactura(venta, {
+            autoImprimir: false,
+            estiloModerno
+        });
+        const pdfFactura = await pdfService.generarDesdeHtml(htmlFactura);
+        const numeroFactura = venta.id.split('-')[0].toUpperCase();
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader(
+            'Content-Disposition',
+            `inline; filename="factura-${numeroFactura}.pdf"`
+        );
+        res.send(pdfFactura);
+    } catch (error) {
+        console.error('Error al generar PDF de factura:', error);
+        res.status(500).send('Error interno al generar PDF de factura');
+    }
+});
+
+router.post('/factura/:id/enviar', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const venta = await prisma.venta.findUnique({
+            where: { id },
+            include: {
+                cliente: true,
+                socio: true,
+                detalles: {
+                    include: { producto: true }
+                }
+            }
+        });
+
+        if (!venta) {
+            return res.status(404).json({ mensaje: 'Factura no encontrada' });
+        }
+
+        if (!venta.cliente?.email) {
+            return res.status(400).json({
+                mensaje: 'El cliente no tiene un correo electrónico registrado'
+            });
+        }
+
+        const numeroFactura = venta.id.split('-')[0].toUpperCase();
+        const htmlFactura = generarHtmlFactura(venta, {
+            autoImprimir: false,
+            estiloModerno: true
+        });
+        const pdfFactura = await pdfService.generarDesdeHtml(htmlFactura);
+        const idCorreo = await correoService.enviar({
+            destinatario: venta.cliente.email,
+            asunto: `Factura #${numeroFactura}`,
+            html: `
+                <div style="font-family: Arial, sans-serif; color: #334155; line-height: 1.6; max-width: 560px; margin: 0 auto;">
+                    <h2 style="color: #0f172a; margin-bottom: 8px;">Gracias por tu compra</h2>
+                    <p style="margin-top: 0;">Hola, <strong>${venta.cliente.nombre}</strong>.</p>
+                    <p>Tu compra fue procesada correctamente. Encontrarás la factura
+                        <strong>#${numeroFactura}</strong> adjunta a este correo en formato PDF.</p>
+                    <p style="font-size: 13px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 16px; margin-top: 24px;">
+                        Este es un mensaje automático. Gracias por preferirnos.
+                    </p>
+                </div>
+            `,
+            adjuntos: [{
+                nombre: `factura-${numeroFactura}.pdf`,
+                contenido: pdfFactura
+            }]
+        });
+
+        res.status(200).json({
+            mensaje: 'Factura enviada correctamente',
+            idCorreo
+        });
+    } catch (error) {
+        console.error('Error al enviar factura por correo:', error);
+        res.status(500).json({
+            mensaje: 'Error interno al enviar la factura por correo'
+        });
     }
 });
 

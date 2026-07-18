@@ -19,7 +19,7 @@ export const verificarToken = (req: AuthRequest, res: Response, next: NextFuncti
         req.socio = payload;
         next();
     } catch (error) {
-        res.status(403).json({ mensaje: 'Token inválido o expirado' });
+        res.status(401).json({ mensaje: 'Token inválido o expirado' });
     }
 };
 

@@ -18,4 +18,15 @@ const storage = multer.diskStorage({
     }
 });
 
-export const upload = multer({ storage });
+const tiposPermitidos = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+export const upload = multer({
+    storage,
+    limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+    fileFilter: (_req, file, cb) => {
+        if (!tiposPermitidos.has(file.mimetype)) {
+            return cb(new multer.MulterError('LIMIT_UNEXPECTED_FILE', 'imagen'));
+        }
+        cb(null, true);
+    }
+});

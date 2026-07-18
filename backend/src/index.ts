@@ -17,6 +17,7 @@ import usuariosRoutes from './routes/usuarios.routes';
 import clientesRoutes from './routes/clientes.routes';
 import tiendaRoutes from './routes/tienda.routes';
 import path from 'path';
+import multer from 'multer';
 
 dotenv.config();
 
@@ -94,6 +95,15 @@ app.use('/api/ventas', ventasRoutesFactory(io));
 
 app.get('/api/health', (req, res) => {
     res.status(200).json({ estado: 'ok', mensaje: 'Servidor corriendo' });
+});
+
+app.use((error: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (!(error instanceof multer.MulterError)) return next(error);
+
+    const mensaje = error.code === 'LIMIT_FILE_SIZE'
+        ? 'La imagen no debe superar los 5 MB.'
+        : 'La imagen debe tener formato JPG, PNG o WEBP.';
+    res.status(400).json({ mensaje });
 });
 
 const PORT = process.env.PORT || 3000;

@@ -15,6 +15,21 @@ import { AppError } from '../errors/app.error';
 const router = Router();
 const svc = new ProductosService();
 
+function esImagenValida(filePath: string): boolean {
+    const buffer = Buffer.alloc(12);
+    const descriptor = fs.openSync(filePath, 'r');
+    try {
+        const bytesLeidos = fs.readSync(descriptor, buffer, 0, buffer.length, 0);
+        if (bytesLeidos < 12) return false;
+        const esJpeg = buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+        const esPng = buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+        const esWebp = buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP';
+        return esJpeg || esPng || esWebp;
+    } finally {
+        fs.closeSync(descriptor);
+    }
+}
+
 // Función helper: extrae el negocioId según el rol
 async function resolverNegocioId(req: AuthRequest): Promise<string | null> {
     const { rol, id, negocioId } = req.socio;
@@ -62,6 +77,11 @@ router.post('/',
                 return res.status(400).json({ mensaje: 'negocioId requerido' });
             }
             const { nombre, valor, stock, descripcion } = req.body;
+            if (req.file && !esImagenValida(req.file.path)) {
+                fs.unlinkSync(req.file.path);
+                req.file = undefined;
+                return res.status(400).json({ mensaje: 'El archivo no contiene una imagen JPG, PNG o WEBP válida.' });
+            }
             const imagenUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
             const nuevo = await svc.crearProducto(negocioId, {
@@ -99,6 +119,7 @@ router.post('/',
 
             res.status(201).json(nuevo);
         } catch (e) {
+            if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
             console.error(e);
             if (e instanceof AppError) return res.status(e.statusCode).json({ mensaje: e.message });
             res.status(500).json({ mensaje: 'No fue posible crear el producto.' });

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -17,6 +17,10 @@ import { finalize } from 'rxjs';
   styleUrl: './crear-producto.css'
 })
 export class CrearProducto {
+  @ViewChild('imagenInput') imagenInput?: ElementRef<HTMLInputElement>;
+
+  readonly formatosPermitidos = ['image/jpeg', 'image/png', 'image/webp'];
+  readonly tamanoMaximoImagen = 5 * 1024 * 1024;
   nombre = '';
   valor: number | null = null;
   stock: number | null = null;
@@ -31,7 +35,8 @@ export class CrearProducto {
     private toast: ToastService,
     private productoService: ProductoService,
     private router: Router,
-    private authService: AuthService
+    private authService: AuthService,
+    private cdr: ChangeDetectorRef
   ) { }
 
   ngOnInit() {
@@ -51,31 +56,62 @@ export class CrearProducto {
     window.location.href = '/admin/login';
   }
 
-  alSeleccionarImagen(event: any) {
-    const file = event.target.files[0];
-    if (file) {
-      // Validar tipo de archivo
-      if (!file.type.startsWith('image/')) {
-        this.toast.warning('Por favor selecciona un archivo de imagen válido');
-        return;
-      }
+  alSeleccionarImagen(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
 
-      // Validar tamaño (máximo 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        this.toast.warning('La imagen no debe superar los 5MB');
-        return;
-      }
-
-      this.archivoSeleccionado = file;
-      const reader = new FileReader();
-      reader.onload = e => this.vistaPrevia = reader.result as string;
-      reader.readAsDataURL(file);
+    if (!this.formatosPermitidos.includes(file.type)) {
+      this.limpiarImagenSeleccionada();
+      this.toast.warning('Formato no permitido. Usa una imagen JPG, PNG o WEBP.');
+      return;
     }
+    if (file.size === 0) {
+      this.limpiarImagenSeleccionada();
+      this.toast.warning('La imagen seleccionada está vacía o dañada.');
+      return;
+    }
+    if (file.size > this.tamanoMaximoImagen) {
+      this.limpiarImagenSeleccionada();
+      this.toast.warning('La imagen no debe superar los 5 MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const resultado = reader.result as string;
+      const imagen = new Image();
+      imagen.onload = () => {
+        this.archivoSeleccionado = file;
+        this.vistaPrevia = resultado;
+        this.toast.success('Imagen cargada correctamente.');
+        this.cdr.detectChanges();
+      };
+      imagen.onerror = () => {
+        this.limpiarImagenSeleccionada();
+        this.toast.error('El archivo no contiene una imagen válida.');
+        this.cdr.detectChanges();
+      };
+      imagen.src = resultado;
+    };
+    reader.onerror = () => {
+      this.limpiarImagenSeleccionada();
+      this.toast.error('No fue posible leer la imagen seleccionada.');
+      this.cdr.detectChanges();
+    };
+    reader.readAsDataURL(file);
   }
 
   removerImagen() {
+    this.limpiarImagenSeleccionada();
+    this.toast.info('Imagen removida.');
+  }
+
+  private limpiarImagenSeleccionada() {
     this.archivoSeleccionado = null;
     this.vistaPrevia = null;
+    if (this.imagenInput) this.imagenInput.nativeElement.value = '';
+    this.cdr.detectChanges();
   }
 
   guardar() {
@@ -96,6 +132,7 @@ export class CrearProducto {
 
     const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
     const negocioId = localStorage.getItem('negocioSeleccionado') || usuario.negocioId;
+    if (!negocioId) return this.toast.error('No se pudo determinar el negocio para crear el producto.');
 
     const formData = new FormData();
     formData.append('nombre', this.nombre.trim());

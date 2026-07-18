@@ -35,7 +35,7 @@ router.post('/',
             const { rol, negocioId } = req.socio;
             const data = req.body;
 
-            if (!data.nombre || !data.email || !data.password || !data.rol) {
+            if (!data.nombre || !data.cedula || !data.email || !data.password || !data.rol) {
                 return res.status(400).json({ mensaje: 'Faltan campos obligatorios' });
             }
 
@@ -48,11 +48,13 @@ router.post('/',
 
             // Manejo de errores amigables de Prisma
             if (e.code === 'P2002') {
-                return res.status(400).json({ mensaje: 'Este correo electrónico ya está registrado en el sistema.' });
+                const esCedula = e.meta?.target?.includes('cedula');
+                return res.status(400).json({ mensaje: esCedula ? 'Esta cédula ya está registrada en el sistema.' : 'Este correo electrónico ya está registrado en el sistema.' });
             }
             if (e.code === 'P2003') {
                 return res.status(400).json({ mensaje: 'La empresa asignada no existe o fue eliminada.' });
             }
+            if (e instanceof Error) return res.status(400).json({ mensaje: e.message });
 
             res.status(500).json({ mensaje: 'Ocurrió un error interno al crear el usuario.' });
         }
@@ -66,14 +68,18 @@ router.put('/:id',
     async (req: AuthRequest, res: Response) => {
         try {
             const id = req.params.id as string;
-            // Aquí podríamos agregar una validación extra para que un ADMINISTRADOR
-            // no pueda editar a un usuario que no sea de su negocioId.
-            const actualizado = await svc.actualizarUsuario(id, req.body);
+            const { rol, negocioId } = req.socio;
+            const actualizado = await svc.actualizarUsuario(id, req.body, rol, negocioId);
 
             const { password, ...usuarioSeguro } = actualizado;
             res.json(usuarioSeguro);
-        } catch (e) {
+        } catch (e: any) {
             console.error('Error en PUT /api/usuarios:', e);
+            if (e.code === 'P2002') {
+                const esCedula = e.meta?.target?.includes('cedula');
+                return res.status(400).json({ mensaje: esCedula ? 'Esta cédula ya está registrada en el sistema.' : 'Este correo electrónico ya está registrado en el sistema.' });
+            }
+            if (e instanceof Error) return res.status(400).json({ mensaje: e.message });
             res.status(500).json({ mensaje: 'Error al actualizar usuario' });
         }
     }
@@ -86,12 +92,12 @@ router.delete('/:id',
     async (req: AuthRequest, res: Response) => {
         try {
             const id = req.params.id as string;
-            // IMPORTANTE: Como tu esquema no tiene "activo", usamos eliminación física.
-            // Asegúrate de modificar el servicio a prisma.socio.delete({ where: { id } })
-            await svc.eliminarUsuario(id);
+            const { rol, negocioId } = req.socio;
+            await svc.eliminarUsuario(id, rol, negocioId);
             res.json({ mensaje: 'Usuario eliminado correctamente' });
-        } catch (e) {
+        } catch (e: any) {
             console.error('Error en DELETE /api/usuarios:', e);
+            if (e instanceof Error) return res.status(400).json({ mensaje: e.message });
             res.status(500).json({ mensaje: 'Error al eliminar usuario' });
         }
     }

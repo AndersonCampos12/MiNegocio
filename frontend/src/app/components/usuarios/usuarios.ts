@@ -7,6 +7,8 @@ import { HttpClient } from '@angular/common/http';
 import { RouterModule } from '@angular/router'; // <-- AGREGAR ESTO
 import { AuthService } from '../../services/auth';
 import { ToastService } from '../../services/toast';
+import { obtenerMensajeHttp } from '../../utils/http-error';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-usuarios',
@@ -21,6 +23,11 @@ export class Usuarios implements OnInit, OnDestroy {
   esEdicion = false;
   usuarioLogueado: any = null;
   empresas: any[] = [];
+  cargando = false;
+  guardando = false;
+  filtroTexto = '';
+  filtroRol = '';
+  filtroEmpresa = '';
 
   usuarioActual: any = null;
   rolActual: string | null = null;
@@ -29,6 +36,7 @@ export class Usuarios implements OnInit, OnDestroy {
   formulario: any = {
     id: '',
     nombre: '',
+    cedula: '',
     email: '',
     password: '',
     rol: 'VENDEDOR',
@@ -77,7 +85,7 @@ export class Usuarios implements OnInit, OnDestroy {
         this.empresas = data;
         this.cdr.detectChanges(); // ✅
       },
-      error: (err) => console.error('Error al cargar empresas', err)
+      error: (err) => this.toast.error(obtenerMensajeHttp(err, 'No fue posible cargar las empresas.'))
     });
   }
 
@@ -86,12 +94,29 @@ export class Usuarios implements OnInit, OnDestroy {
   }
 
   cargarUsuarios() {
+    this.cargando = true;
     this.usuarioService.obtenerUsuarios().subscribe({
       next: (data) => {
         this.usuarios = data;
+        this.cargando = false;
         this.cdr.detectChanges(); // ✅
       },
-      error: (err) => console.error('Error cargando usuarios:', err)
+      error: (err) => {
+        this.cargando = false;
+        this.toast.error(obtenerMensajeHttp(err, 'No fue posible cargar los usuarios.'));
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  get usuariosFiltrados(): any[] {
+    const texto = this.filtroTexto.trim().toLowerCase();
+    return this.usuarios.filter(usuario => {
+      const coincideTexto = !texto || [usuario.nombre, usuario.cedula, usuario.email]
+        .some(valor => String(valor ?? '').toLowerCase().includes(texto));
+      const coincideRol = !this.filtroRol || usuario.rol === this.filtroRol;
+      const coincideEmpresa = !this.filtroEmpresa || usuario.negocioId === this.filtroEmpresa;
+      return coincideTexto && coincideRol && coincideEmpresa;
     });
   }
 
@@ -100,10 +125,10 @@ export class Usuarios implements OnInit, OnDestroy {
     if (usuario) {
       this.esEdicion = true;
       // Clonamos el objeto y limpiamos la contraseña para que no se muestre
-      this.formulario = { ...usuario, password: '' };
+      this.formulario = { ...usuario, cedula: usuario.cedula || '', password: '' };
     } else {
       this.esEdicion = false;
-      this.formulario = { id: '', nombre: '', email: '', password: '', rol: 'VENDEDOR', negocioId: '' };
+      this.formulario = { id: '', nombre: '', cedula: '', email: '', password: '', rol: 'VENDEDOR', negocioId: '' };
     }
   }
 
@@ -112,21 +137,55 @@ export class Usuarios implements OnInit, OnDestroy {
   }
 
   guardar() {
+    if (this.guardando) return;
+
+    const nombre = String(this.formulario.nombre ?? '').trim();
+    const cedula = String(this.formulario.cedula ?? '').trim();
+    const email = String(this.formulario.email ?? '').trim().toLowerCase();
+    const password = String(this.formulario.password ?? '');
+
+    if (nombre.length < 2 || nombre.length > 100) return this.toast.warning('El nombre debe tener entre 2 y 100 caracteres.');
+    if (!/^\d{10}$/.test(cedula)) return this.toast.warning('La cédula es obligatoria y debe contener 10 dígitos.');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return this.toast.warning('Ingresa un correo electrónico válido.');
+    if (!this.esEdicion && password.length < 8) return this.toast.warning('La contraseña debe tener al menos 8 caracteres.');
+    if (this.esEdicion && password && password.length < 8) return this.toast.warning('La nueva contraseña debe tener al menos 8 caracteres.');
+    if (!this.rolesDisponibles.includes(this.formulario.rol)) return this.toast.warning('Selecciona un rol válido.');
+    if (this.esSuperadmin && !this.formulario.negocioId) return this.toast.warning('Selecciona la empresa a la que pertenece el usuario.');
+
+    this.formulario = { ...this.formulario, nombre, cedula, email };
+    this.guardando = true;
+
     if (this.esEdicion) {
-      this.usuarioService.actualizarUsuario(this.formulario.id, this.formulario).subscribe({
+      this.usuarioService.actualizarUsuario(this.formulario.id, this.formulario).pipe(finalize(() => {
+        this.guardando = false;
+        this.cdr.detectChanges();
+      })).subscribe({
         next: () => {
           this.cargarUsuarios();
           this.cerrarModal();
+          this.toast.success('Usuario actualizado correctamente.');
         },
-        error: (err) => this.toast.error(err.error?.mensaje || 'Error al actualizar')
+        error: (err) => {
+          this.guardando = false;
+          this.cdr.detectChanges();
+          this.toast.error(obtenerMensajeHttp(err, 'No fue posible actualizar el usuario.'));
+        }
       });
     } else {
-      this.usuarioService.crearUsuario(this.formulario).subscribe({
+      this.usuarioService.crearUsuario(this.formulario).pipe(finalize(() => {
+        this.guardando = false;
+        this.cdr.detectChanges();
+      })).subscribe({
         next: () => {
           this.cargarUsuarios();
           this.cerrarModal();
+          this.toast.success('Usuario creado correctamente.');
         },
-        error: (err) => this.toast.error(err.error?.mensaje || 'Error al crear')
+        error: (err) => {
+          this.guardando = false;
+          this.cdr.detectChanges();
+          this.toast.error(obtenerMensajeHttp(err, 'No fue posible crear el usuario.'));
+        }
       });
     }
   }
@@ -134,8 +193,11 @@ export class Usuarios implements OnInit, OnDestroy {
   eliminar(id: string) {
     if (confirm('¿Estás seguro de que deseas eliminar este usuario definitivamente?')) {
       this.usuarioService.eliminarUsuario(id).subscribe({
-        next: () => this.cargarUsuarios(),
-        error: (err) => console.error('Error al eliminar', err)
+        next: () => {
+          this.cargarUsuarios();
+          this.toast.success('Usuario eliminado correctamente.');
+        },
+        error: (err) => this.toast.error(obtenerMensajeHttp(err, 'No fue posible eliminar el usuario.'))
       });
     }
   }

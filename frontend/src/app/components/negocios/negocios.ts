@@ -6,12 +6,15 @@ import { AdminLayout } from '../admin-layout/admin-layout'; // Verifica esta rut
 import { NegociosService } from '../../services/negocios';
 import { AuthService } from '../../services/auth'; // Asegúrate de la ruta correcta a tu auth.ts
 import { ToastService } from '../../services/toast';
+import { obtenerMensajeHttp } from '../../utils/http-error';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-negocios',
   standalone: true,
   imports: [CommonModule, FormsModule, AdminLayout, RouterModule],
-  templateUrl: './negocios.html'
+  templateUrl: './negocios.html',
+  styleUrl: './negocios.css'
 })
 export class Negocios implements OnInit, OnDestroy {
   private sub: any;
@@ -20,6 +23,10 @@ export class Negocios implements OnInit, OnDestroy {
   empresas: any[] = [];
   mostrarModal = false;
   esEdicion = false;
+  cargando = false;
+  guardando = false;
+  filtroTexto = '';
+  filtroEstado = '';
 
   usuarioActual: any = null;
   rolActual: string | null = null;
@@ -30,6 +37,7 @@ export class Negocios implements OnInit, OnDestroy {
     plan: 'MULTI',
     estado: 'ACTIVO',
     adminNombre: '',
+    adminCedula: '',
     adminEmail: '',
     adminPassword: ''
   };
@@ -71,23 +79,46 @@ export class Negocios implements OnInit, OnDestroy {
   }
 
   cargarTodasLasEmpresas() {
+    this.cargando = true;
     this.negociosService.obtenerTodos().subscribe({
       next: (data) => {
         this.empresas = data;
+        this.cargando = false;
         this.cdr.detectChanges(); // ← faltaba esto
       },
-      error: (err) => console.error('Error cargando empresas:', err)
+      error: (err) => {
+        this.cargando = false;
+        this.toast.error(obtenerMensajeHttp(err, 'No fue posible cargar las empresas.'));
+        this.cdr.detectChanges();
+      }
     });
+  }
+
+  get empresasFiltradas(): any[] {
+    const texto = this.filtroTexto.trim().toLowerCase();
+    return this.empresas.filter(empresa => {
+      const coincideTexto = !texto || [empresa.nombre, empresa.slug, empresa.plan]
+        .some(valor => String(valor ?? '').toLowerCase().includes(texto));
+      return coincideTexto && (!this.filtroEstado || empresa.estado === this.filtroEstado);
+    });
+  }
+
+  get totalActivas(): number {
+    return this.empresas.filter(empresa => empresa.estado === 'ACTIVO').length;
+  }
+
+  get totalPendientes(): number {
+    return this.empresas.filter(empresa => empresa.estado === 'PENDIENTE').length;
   }
 
   abrirModal(empresa?: any) {
     this.mostrarModal = true;
     if (empresa) {
       this.esEdicion = true;
-      this.formulario = { ...empresa };
+      this.formulario = { ...empresa, adminNombre: '', adminCedula: '', adminEmail: '', adminPassword: '' };
     } else {
       this.esEdicion = false;
-      this.formulario = { nombre: '', slug: '', plan: 'MULTI', estado: 'ACTIVO', adminNombre: '', adminEmail: '', adminPassword: '' };
+      this.formulario = { nombre: '', slug: '', plan: 'MULTI', estado: 'ACTIVO', adminNombre: '', adminCedula: '', adminEmail: '', adminPassword: '' };
     }
   }
 
@@ -101,14 +132,46 @@ export class Negocios implements OnInit, OnDestroy {
         this.formulario = { ...data };
         this.cdr.detectChanges(); // ← faltaba esto
       },
-      error: (err) => console.error('Error cargando mi empresa:', err)
+      error: (err) => this.toast.error(obtenerMensajeHttp(err, 'No fue posible cargar los datos de tu empresa.'))
     });
   }
 
+  actualizarSlug() {
+    if (this.esEdicion) return;
+    this.formulario.slug = String(this.formulario.nombre ?? '')
+      .toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  }
+
   guardar() {
+    if (this.guardando) return;
+    const nombre = String(this.formulario.nombre ?? '').trim();
+    const slug = String(this.formulario.slug ?? '').trim().toLowerCase();
+
+    if (nombre.length < 2 || nombre.length > 100) return this.toast.warning('El nombre de la empresa debe tener entre 2 y 100 caracteres.');
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return this.toast.warning('El slug solo puede contener minúsculas, números y guiones.');
+
+    if (!this.esEdicion && this.esSuperadmin) {
+      const adminNombre = String(this.formulario.adminNombre ?? '').trim();
+      const adminCedula = String(this.formulario.adminCedula ?? '').trim();
+      const adminEmail = String(this.formulario.adminEmail ?? '').trim().toLowerCase();
+      const adminPassword = String(this.formulario.adminPassword ?? '');
+      if (adminNombre.length < 2) return this.toast.warning('Ingresa el nombre del administrador.');
+      if (!/^\d{10}$/.test(adminCedula)) return this.toast.warning('La cédula del administrador debe tener 10 dígitos.');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail)) return this.toast.warning('Ingresa un correo electrónico válido para el administrador.');
+      if (adminPassword.length < 8) return this.toast.warning('La contraseña debe tener al menos 8 caracteres.');
+      this.formulario = { ...this.formulario, adminNombre, adminCedula, adminEmail, nombre, slug };
+    } else {
+      this.formulario = { ...this.formulario, nombre, slug };
+    }
+
+    this.guardando = true;
     if (this.esEdicion || !this.esSuperadmin) {
       // Editar
-      this.negociosService.actualizarEmpresa(this.formulario.id, this.formulario).subscribe({
+      this.negociosService.actualizarEmpresa(this.formulario.id, this.formulario).pipe(finalize(() => {
+        this.guardando = false;
+        this.cdr.detectChanges();
+      })).subscribe({
         next: () => {
           this.toast.success('Datos de la empresa actualizados.');
           if (this.esSuperadmin) {
@@ -116,25 +179,31 @@ export class Negocios implements OnInit, OnDestroy {
             this.cerrarModal();
           }
         },
-        error: (err) => this.toast.error(err.error?.mensaje || 'Error al actualizar')
+        error: (err) => this.toast.error(obtenerMensajeHttp(err, 'No fue posible actualizar la empresa.'))
       });
     } else {
       // Crear nueva (Mapeo exacto a tu servicio backend)
       const payload = {
         nombreNegocio: this.formulario.nombre,
         slug: this.formulario.slug,
+        plan: this.formulario.plan,
+        estado: this.formulario.estado,
         nombreAdmin: this.formulario.adminNombre,
+        cedulaAdmin: this.formulario.adminCedula,
         emailAdmin: this.formulario.adminEmail,
         passwordAdmin: this.formulario.adminPassword
       };
 
-      this.negociosService.crearEmpresaYAdmin(payload).subscribe({
+      this.negociosService.crearEmpresaYAdmin(payload).pipe(finalize(() => {
+        this.guardando = false;
+        this.cdr.detectChanges();
+      })).subscribe({
         next: () => {
           this.toast.success('Empresa creada exitosamente.');
           this.cargarTodasLasEmpresas();
           this.cerrarModal();
         },
-        error: (err) => this.toast.error(err.error?.mensaje || 'Error al crear la empresa')
+        error: (err) => this.toast.error(obtenerMensajeHttp(err, 'No fue posible crear la empresa.'))
       });
     }
   }

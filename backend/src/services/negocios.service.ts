@@ -6,7 +6,10 @@ import bcrypt from 'bcrypt';
 export const crearNegocioConAdmin = async (data: {
     nombreNegocio: string;
     slug: string;
+    plan?: string;
+    estado?: 'PENDIENTE' | 'ACTIVO' | 'BLOQUEADO';
     nombreAdmin: string;
+    cedulaAdmin: string;
     emailAdmin: string;
     passwordAdmin: string;
 }) => {
@@ -18,13 +21,15 @@ export const crearNegocioConAdmin = async (data: {
             data: {
                 nombre: data.nombreNegocio,
                 slug: data.slug,
-                estado: 'ACTIVO', // O 'PENDIENTE' si requiere validación extra
+                plan: data.plan || 'MULTI',
+                estado: data.estado || 'ACTIVO',
             },
         });
 
         const nuevoAdmin = await tx.socio.create({
             data: {
                 nombre: data.nombreAdmin,
+                cedula: data.cedulaAdmin,
                 email: data.emailAdmin,
                 password: hashedPassword,
                 rol: 'ADMINISTRADOR',

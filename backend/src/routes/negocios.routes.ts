@@ -10,6 +10,31 @@ const router = Router();
 // ==========================================
 router.post('/crear-empresa', verificarToken, verificarRol(['SUPERADMIN']), async (req: AuthRequest, res: Response): Promise<void> => {
     try {
+        const { nombreNegocio, slug, plan, estado, nombreAdmin, cedulaAdmin, emailAdmin, passwordAdmin } = req.body;
+        if (!nombreNegocio?.trim() || !slug?.trim() || !nombreAdmin?.trim() || !cedulaAdmin?.trim() || !emailAdmin?.trim() || !passwordAdmin) {
+            res.status(400).json({ mensaje: 'Completa todos los datos de la empresa y su administrador.' });
+            return;
+        }
+        if (!/^\d{10}$/.test(cedulaAdmin.trim())) {
+            res.status(400).json({ mensaje: 'La cédula del administrador debe tener 10 dígitos.' });
+            return;
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailAdmin.trim())) {
+            res.status(400).json({ mensaje: 'El correo electrónico del administrador no es válido.' });
+            return;
+        }
+        if (passwordAdmin.length < 8) {
+            res.status(400).json({ mensaje: 'La contraseña del administrador debe tener al menos 8 caracteres.' });
+            return;
+        }
+        if (plan && !['BASIC', 'PRO', 'MULTI', 'ILIMITADO'].includes(plan)) {
+            res.status(400).json({ mensaje: 'El plan seleccionado no es válido.' });
+            return;
+        }
+        if (estado && !['PENDIENTE', 'ACTIVO', 'BLOQUEADO'].includes(estado)) {
+            res.status(400).json({ mensaje: 'El estado seleccionado no es válido.' });
+            return;
+        }
         const resultado = await crearNegocioConAdmin(req.body);
         const { password, ...adminSinPassword } = resultado.admin;
 
@@ -20,7 +45,8 @@ router.post('/crear-empresa', verificarToken, verificarRol(['SUPERADMIN']), asyn
         });
     } catch (error: any) {
         if (error.code === 'P2002') {
-            res.status(400).json({ mensaje: 'El email o el slug (identificador) ya están en uso.' });
+            const campo = error.meta?.target?.includes('cedula') ? 'cédula' : error.meta?.target?.includes('email') ? 'correo electrónico' : 'slug';
+            res.status(400).json({ mensaje: `El ${campo} ya está en uso.` });
             return;
         }
         res.status(500).json({ mensaje: 'Error interno del servidor', error: error.message });
@@ -71,10 +97,23 @@ router.put('/:id', verificarToken, verificarRol(['SUPERADMIN', 'ADMINISTRADOR'])
             return;
         }
 
-        const datosActualizacion: any = { nombre, slug };
+        if (!nombre?.trim() || !slug?.trim()) {
+            res.status(400).json({ mensaje: 'El nombre y el slug de la empresa son obligatorios.' });
+            return;
+        }
+
+        const datosActualizacion: any = { nombre: nombre.trim(), slug: slug.trim().toLowerCase() };
 
         // Solo el Superadmin puede cambiar planes y estados
         if (rol === 'SUPERADMIN') {
+            if (plan && !['BASIC', 'PRO', 'MULTI', 'ILIMITADO'].includes(plan)) {
+                res.status(400).json({ mensaje: 'El plan seleccionado no es válido.' });
+                return;
+            }
+            if (estado && !['PENDIENTE', 'ACTIVO', 'BLOQUEADO'].includes(estado)) {
+                res.status(400).json({ mensaje: 'El estado seleccionado no es válido.' });
+                return;
+            }
             if (plan) datosActualizacion.plan = plan;
             if (estado) datosActualizacion.estado = estado;
         }

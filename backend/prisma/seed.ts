@@ -6,6 +6,17 @@ import 'dotenv/config';
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
+const obtenerVariableObligatoria = (nombre: string): string => {
+    const valor = process.env[nombre]?.trim();
+    if (!valor) throw new Error(`Define ${nombre} en el archivo .env antes de ejecutar el seed.`);
+    return valor;
+};
+
+const SUPERADMIN_EMAIL = obtenerVariableObligatoria('SUPERADMIN_EMAIL');
+const SUPERADMIN_PASSWORD = obtenerVariableObligatoria('SUPERADMIN_PASSWORD');
+const SUPERADMIN_NOMBRE = process.env.SUPERADMIN_NOMBRE || 'Administrador del sistema';
+const SUPERADMIN_CEDULA = process.env.SUPERADMIN_CEDULA || '0000000000';
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const hash = async (pwd: string) => bcrypt.hash(pwd, await bcrypt.genSalt(10));
@@ -48,7 +59,8 @@ const NEGOCIOS = [
     },
 ];
 
-// Productos por negocio (nombre, valor en USD, stock)
+// Stock actual de productos reales por negocio. Las ventas se generan como historial,
+// por lo que no deben descontarse nuevamente de estas existencias.
 const PRODUCTOS_POR_NEGOCIO: Record<string, { nombre: string; valor: number; stock: number; descripcion: string }[]> = {
     'abarrotes-don-pepe': [
         { nombre: 'Arroz 5 libras', valor: 3.50, stock: 120, descripcion: 'Arroz de grano largo, cosecha nacional' },
@@ -139,10 +151,6 @@ async function main() {
     // ── 1. Negocio raíz + SuperAdmin (idéntico al seed original) ──────────────
     console.log('👑 Creando negocio raíz y SuperAdmin...');
 
-    const email = process.env.SUPERADMIN_EMAIL || 'admin@minegocio.com';
-    const password = process.env.SUPERADMIN_PASSWORD || 'admin123';
-    const nombre = process.env.SUPERADMIN_NOMBRE || 'Super Admin';
-
     const negocioRoot = await prisma.negocio.upsert({
         where: { slug: 'sistema-central' },
         update: {},
@@ -155,12 +163,19 @@ async function main() {
     });
 
     const superAdmin = await prisma.socio.upsert({
-        where: { email },
-        update: {},
+        where: { email: SUPERADMIN_EMAIL },
+        update: {
+            nombre: SUPERADMIN_NOMBRE,
+            cedula: SUPERADMIN_CEDULA,
+            password: await hash(SUPERADMIN_PASSWORD),
+            rol: Rol.SUPERADMIN,
+            negocioId: negocioRoot.id,
+        },
         create: {
-            nombre,
-            email,
-            password: await hash(password),
+            nombre: SUPERADMIN_NOMBRE,
+            cedula: SUPERADMIN_CEDULA,
+            email: SUPERADMIN_EMAIL,
+            password: await hash(SUPERADMIN_PASSWORD),
             rol: Rol.SUPERADMIN,
             negocioId: negocioRoot.id,
         },
@@ -196,7 +211,12 @@ async function main() {
         for (const s of socios) {
             const socio = await prisma.socio.upsert({
                 where: { email: s.email },
-                update: {},
+                update: {
+                    nombre: s.nombre,
+                    cedula: s.cedula,
+                    rol: s.rol,
+                    negocioId,
+                },
                 create: {
                     ...s,
                     negocioId,
@@ -242,7 +262,7 @@ async function main() {
     // ── 5. Ventas con detalles ────────────────────────────────────────────────
     console.log('🛒 Creando ventas y detalles...');
 
-    // Solo creamos ventas en negocios ACTIVOS
+    // Solo se generan ventas históricas para negocios que pueden operar.
     const negociosActivos = ['abarrotes-don-pepe', 'ferreteria-el-clavo'];
 
     for (const slug of negociosActivos) {
@@ -280,7 +300,7 @@ async function main() {
             }));
 
             const subtotal = detalles.reduce((acc, d) => acc + d.precioUnit * d.cantidad, 0);
-            const impuestos = parseFloat((subtotal * 0.12).toFixed(2)); // IVA 12%
+            const impuestos = parseFloat((subtotal * 0.15).toFixed(2)); // IVA de la aplicación: 15%
             const total = parseFloat((subtotal + impuestos).toFixed(2));
 
             const venta = await prisma.venta.create({
@@ -352,6 +372,7 @@ async function main() {
     console.log(`🛒  Ventas     : 30 (15 por negocio activo)`);
     console.log('───────────────────────────────────────────');
     console.log('🔑  Contraseña de todos los socios de prueba: Test1234!');
+    console.log('👑  SuperAdmin : usa las credenciales SUPERADMIN_EMAIL y SUPERADMIN_PASSWORD del .env');
     console.log('═══════════════════════════════════════════\n');
 }
 

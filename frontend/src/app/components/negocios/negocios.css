@@ -1,0 +1,56 @@
+.enterprise-stat {
+  background: white;
+  border: 1px solid rgb(229 231 235);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+}
+
+.enterprise-stat span {
+  color: rgb(107 114 128);
+  font-size: 0.875rem;
+}
+
+.enterprise-stat strong {
+  color: rgb(17 24 39);
+  font-size: 1.5rem;
+}
+
+.enterprise-profile-header {
+  background: linear-gradient(135deg, rgb(30 64 175), rgb(37 99 235));
+  color: white;
+  padding: 1.75rem 2rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.enterprise-profile-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0.25rem 0;
+}
+
+.enterprise-profile-header > div > p:last-child {
+  color: rgb(219 234 254);
+  font-size: 0.875rem;
+}
+
+.enterprise-profile-header > span {
+  border-radius: 9999px;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .enterprise-profile-header {
+    padding: 1.5rem;
+    flex-direction: column;
+  }
+}

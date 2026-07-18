@@ -29,12 +29,34 @@
             </button>
         </div>
 
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6 grid grid-cols-1 md:grid-cols-3 gap-3">
+            <input type="search" [(ngModel)]="filtroTexto" placeholder="Buscar por nombre, cédula o correo"
+                class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white">
+            <select [(ngModel)]="filtroRol"
+                class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white">
+                <option value="">Todos los roles</option>
+                @for (rol of rolesDisponibles; track rol) {
+                <option [value]="rol">{{ rol }}</option>
+                }
+            </select>
+            @if (esSuperadmin) {
+            <select [(ngModel)]="filtroEmpresa"
+                class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white">
+                <option value="">Todas las empresas</option>
+                @for (empresa of empresas; track empresa.id) {
+                <option [value]="empresa.id">{{ empresa.nombre }}</option>
+                }
+            </select>
+            }
+        </div>
+
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-gray-50 text-gray-600 text-sm uppercase tracking-wider border-b border-gray-100">
                             <th class="p-4 font-semibold">Nombre</th>
+                            <th class="p-4 font-semibold">Cédula</th>
                             <th class="p-4 font-semibold">Email</th>
                             <th class="p-4 font-semibold">Rol</th>
                             @if (esSuperadmin) { <th class="p-4 font-semibold">Empresa</th> }
@@ -42,9 +64,10 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                        @for (user of usuarios; track user.id) {
+                        @for (user of usuariosFiltrados; track user.id) {
                         <tr class="hover:bg-gray-50 transition-colors">
                             <td class="p-4 text-gray-800 font-medium">{{ user.nombre }}</td>
+                            <td class="p-4 text-gray-500">{{ user.cedula }}</td>
                             <td class="p-4 text-gray-500">{{ user.email }}</td>
                             <td class="p-4">
                                 <span class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
@@ -75,7 +98,9 @@
                         </tr>
                         } @empty {
                         <tr>
-                            <td colspan="5" class="p-8 text-center text-gray-500">No hay usuarios registrados.</td>
+                            <td [attr.colspan]="esSuperadmin ? 7 : 6" class="p-8 text-center text-gray-500">
+                                {{ cargando ? 'Cargando usuarios...' : 'No hay usuarios que coincidan con los filtros.' }}
+                            </td>
                         </tr>
                         }
                     </tbody>
@@ -97,16 +122,24 @@
             </button>
         </div>
 
-        <div class="p-6 space-y-4">
+        <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
-                <input type="text" [(ngModel)]="formulario.nombre"
+                <input type="text" [(ngModel)]="formulario.nombre" maxlength="100" autocomplete="name"
                     class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white">
             </div>
 
             <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Cédula</label>
+                <input type="text" [(ngModel)]="formulario.cedula" inputmode="numeric" maxlength="10" autocomplete="off"
+                    placeholder="Ej.: 0102030405"
+                    class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white">
+                <p class="mt-1 text-xs text-gray-500">Obligatoria; debe contener 10 dígitos.</p>
+            </div>
+
+            <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
-                <input type="email" [(ngModel)]="formulario.email"
+                <input type="email" [(ngModel)]="formulario.email" maxlength="254" autocomplete="email"
                     class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white">
             </div>
 
@@ -115,7 +148,7 @@
                     Contraseña <span class="text-xs text-gray-400 font-normal" *ngIf="esEdicion">(Dejar en blanco para
                         no cambiar)</span>
                 </label>
-                <input type="password" [(ngModel)]="formulario.password"
+                <input type="password" [(ngModel)]="formulario.password" minlength="8" autocomplete="new-password"
                     class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white">
             </div>
 
@@ -135,7 +168,7 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">Asignar a Empresa</label>
                     <select [(ngModel)]="formulario.negocioId"
                         class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white">
-                        <option value="" disabled selected>Seleccione una empresa...</option>
+                        <option value="" disabled>Seleccione una empresa...</option>
                         @for (empresa of empresas; track empresa.id) {
                         <option [value]="empresa.id">{{ empresa.nombre }}</option>
                         }
@@ -148,8 +181,10 @@
         <div class="p-6 bg-gray-50 flex justify-end gap-3 border-t border-gray-100">
             <button (click)="cerrarModal()"
                 class="px-5 py-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors font-medium">Cancelar</button>
-            <button (click)="guardar()"
-                class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md transition-colors font-medium">Guardar</button>
+            <button (click)="guardar()" [disabled]="guardando"
+                class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-60 shadow-md transition-colors font-medium">
+                {{ guardando ? 'Guardando...' : 'Guardar' }}
+            </button>
         </div>
     </div>
 </div>

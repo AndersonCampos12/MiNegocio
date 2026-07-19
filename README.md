@@ -112,6 +112,27 @@ Métricas consolidadas con agregaciones nativas de la base de datos (_sum, _coun
 
 ## Instalación Local
 
+### Recomendaciones con IA (Ollama)
+
+El ranking se calcula con ventas reales de PostgreSQL. Ollama ordena los candidatos y explica por qué se recomiendan; si Ollama está apagado, la aplicación devuelve automáticamente el ranking normal.
+
+Después de instalar Ollama, solo hay que descargar el modelo una vez desde `backend/`:
+
+```bash
+npm run ai:setup
+```
+
+Ollama debe estar ejecutándose en `http://127.0.0.1:11434`. Las variables opcionales del backend son:
+
+```env
+OLLAMA_URL="http://127.0.0.1:11434"
+OLLAMA_MODEL="llama3.2:3b"
+```
+
+No se expone Ollama al navegador. Angular llama a `POST /api/recomendaciones` y el backend exige un JWT válido y uno de los roles autorizados. En **Reportes**, usa el botón **Generar recomendaciones**.
+
+Luego se arranca el backend normalmente con `npm run dev`; no hay que entrenar modelos ni instalar librerías adicionales de IA.
+
 ### 1. Clonar el repositorio
 
 git clone https://github.com/tu-usuario/MiNegocio

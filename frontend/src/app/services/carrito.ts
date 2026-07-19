@@ -30,6 +30,13 @@ export class CarritoService {
         return carrito;
     }
 
+    eliminarProductos(productoIds: string[]) {
+        const ids = new Set(productoIds);
+        const carrito = this.obtenerCarrito().filter((item: any) => !ids.has(item.id));
+        localStorage.setItem(this.storageKey, JSON.stringify(carrito));
+        return carrito;
+    }
+
     actualizarCantidad(productoId: string, cantidad: number) {
         const carrito = this.obtenerCarrito();
         const producto = carrito.find((item: any) => item.id === productoId);

@@ -17,15 +17,16 @@ const contactoSchema = z.object({
 });
 
 export class ClientesService {
-    async obtenerClientes(negocioId: string, activo?: boolean) {
+    async obtenerClientes(negocioId?: string, activo?: boolean) {
         const membresias = await prisma.clienteNegocio.findMany({
-            where: { negocioId, ...(activo === undefined ? {} : { activo }) },
+            where: { ...(negocioId ? { negocioId } : {}), ...(activo === undefined ? {} : { activo }) },
             select: {
                 id: true,
                 activo: true,
                 creadoEn: true,
                 nombreReferencia: true,
                 emailContacto: true,
+                negocio: { select: { id: true, nombre: true, slug: true } },
                 cliente: {
                     select: {
                         id: true,
@@ -42,16 +43,16 @@ export class ClientesService {
         const ids = membresias.map(item => item.cliente.id);
         const ventas = ids.length
             ? await prisma.venta.groupBy({
-                by: ['clienteId'],
-                where: { negocioId, clienteId: { in: ids } },
+                by: ['clienteId', 'negocioId'],
+                where: { ...(negocioId ? { negocioId } : {}), clienteId: { in: ids } },
                 _count: { id: true },
                 _sum: { total: true }
             })
             : [];
-        const resumen = new Map(ventas.map(item => [item.clienteId, item]));
+        const resumen = new Map(ventas.map(item => [`${item.clienteId}:${item.negocioId}`, item]));
 
         return membresias.map(item => {
-            const compras = resumen.get(item.cliente.id);
+            const compras = resumen.get(`${item.cliente.id}:${item.negocio.id}`);
             return {
                 membresiaId: item.id,
                 clienteId: item.cliente.id,
@@ -62,7 +63,10 @@ export class ClientesService {
                 activo: item.activo,
                 creadoEn: item.creadoEn,
                 totalCompras: compras?._count.id || 0,
-                montoCompras: Number(compras?._sum.total || 0)
+                montoCompras: Number(compras?._sum.total || 0),
+                negocioId: item.negocio.id,
+                negocioNombre: item.negocio.nombre,
+                negocioSlug: item.negocio.slug
             };
         });
     }

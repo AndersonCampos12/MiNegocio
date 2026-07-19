@@ -4,6 +4,7 @@ import { prisma } from '../config/database';
 import { generarHtmlFactura } from '../templates/factura.template';
 import { PdfService } from '../services/pdf.service';
 import { CorreoService } from '../services/correo.service';
+import { obtenerRespuestaError } from '../errors/app.error';
 
 const router = Router();
 const reportesService = new ReportesService();
@@ -191,11 +192,10 @@ router.post('/factura/:id/enviar', async (req, res) => {
             mensaje: 'Factura enviada correctamente',
             idCorreo
         });
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Error al enviar factura por correo:', error);
-        res.status(500).json({
-            mensaje: 'Error interno al enviar la factura por correo'
-        });
+        const respuesta = obtenerRespuestaError(error);
+        res.status(respuesta.statusCode).json({ mensaje: respuesta.mensaje });
     }
 });
 

@@ -28,7 +28,7 @@ export class Dashboard implements OnInit {
     { titulo: 'Usuarios', ruta: '/admin/usuarios', icono: 'usuarios', roles: ['SUPERADMIN', 'ADMINISTRADOR'] },
 
     // CLIENTES: cartera comercial propia de cada empresa
-    { titulo: 'Clientes', ruta: '/admin/clientes', icono: 'clientes', roles: ['ADMINISTRADOR'] },
+    { titulo: 'Clientes', ruta: '/admin/clientes', icono: 'clientes', roles: ['SUPERADMIN', 'ADMINISTRADOR'] },
 
     // EMPRESAS: Solo superadmin
     { titulo: 'Negocios', ruta: '/admin/negocios', icono: 'negocios', roles: ['SUPERADMIN', 'ADMINISTRADOR'] },

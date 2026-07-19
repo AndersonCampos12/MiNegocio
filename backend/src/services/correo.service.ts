@@ -1,4 +1,5 @@
-import { Resend } from 'resend';
+import nodemailer, { Transporter } from 'nodemailer';
+import { AppError } from '../errors/app.error';
 
 interface AdjuntoCorreo {
     nombre: string;
@@ -14,45 +15,58 @@ interface DatosCorreo {
 }
 
 export class CorreoService {
-    private obtenerCliente(): Resend {
-        const apiKey = process.env.RESEND_API_KEY;
+    private transporter: Transporter | null = null;
 
-        if (!apiKey) {
-            throw new Error('Falta configurar RESEND_API_KEY');
+    private obtenerTransporter(): Transporter {
+        const usuario = process.env.EMAIL_USER;
+        const password = process.env.EMAIL_APP_PASSWORD?.replace(/\s/g, '');
+        if (!usuario || !password) {
+            throw new AppError('El servicio de correo todavía no está configurado.', 503);
         }
 
-        return new Resend(apiKey);
+        if (!this.transporter) {
+            this.transporter = nodemailer.createTransport({
+                host: 'smtp.gmail.com',
+                port: 465,
+                secure: true,
+                auth: { user: usuario, pass: password }
+            });
+        }
+        return this.transporter;
     }
 
     async enviar(datos: DatosCorreo): Promise<string> {
-        const variableRemitente = datos.tipo === 'FACTURA'
-            ? 'EMAIL_FROM_FACTURAS'
-            : 'EMAIL_FROM_AUTH';
-        const remitente = process.env[variableRemitente];
+        const usuario = process.env.EMAIL_USER as string;
+        const nombreRemitente = datos.tipo === 'FACTURA'
+            ? process.env.EMAIL_NAME_FACTURAS || 'Facturación MiNegocio'
+            : process.env.EMAIL_NAME_AUTH || 'Seguridad MiNegocio';
 
-        if (!remitente) {
-            throw new Error(`Falta configurar ${variableRemitente}`);
+        let resultado;
+        try {
+            resultado = await this.obtenerTransporter().sendMail({
+                from: `"${nombreRemitente.replace(/["\r\n]/g, '')}" <${usuario}>`,
+                to: datos.destinatario,
+                subject: datos.asunto,
+                html: datos.html,
+                attachments: datos.adjuntos?.map(adjunto => ({
+                    filename: adjunto.nombre,
+                    content: adjunto.contenido
+                }))
+            });
+        } catch (error: any) {
+            if (error instanceof AppError) throw error;
+            if (error?.code === 'EAUTH') {
+                throw new AppError('Gmail rechazó las credenciales de correo. Revisa la contraseña de aplicación.', 503);
+            }
+            if (['ECONNECTION', 'ETIMEDOUT', 'ESOCKET'].includes(error?.code)) {
+                throw new AppError('No se pudo establecer conexión con Gmail.', 503);
+            }
+            throw new AppError('Gmail no pudo enviar el correo.', 502);
         }
 
-        const { data, error } = await this.obtenerCliente().emails.send({
-            from: remitente,
-            to: [datos.destinatario],
-            subject: datos.asunto,
-            html: datos.html,
-            attachments: datos.adjuntos?.map(adjunto => ({
-                filename: adjunto.nombre,
-                content: adjunto.contenido
-            }))
-        });
-
-        if (error) {
-            throw new Error(`Resend rechazó el correo: ${error.message}`);
+        if (!resultado.messageId) {
+            throw new Error('Gmail no devolvió el identificador del correo');
         }
-
-        if (!data?.id) {
-            throw new Error('Resend no devolvió el identificador del correo');
-        }
-
-        return data.id;
+        return resultado.messageId;
     }
 }

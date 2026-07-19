@@ -60,7 +60,7 @@ export const routes: Routes = [
                 path: 'clientes',
                 loadComponent: () => import('./components/clientes/clientes').then(m => m.Clientes),
                 canActivate: [roleGuard],
-                data: { roles: ['ADMINISTRADOR'] }
+                data: { roles: ['SUPERADMIN', 'ADMINISTRADOR'] }
             },
             {
                 path: 'usuarios',

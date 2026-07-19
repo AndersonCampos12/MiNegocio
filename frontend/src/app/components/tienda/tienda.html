@@ -130,13 +130,15 @@
                         </div>
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-semibold text-gray-800 truncate">{{ item.nombre }}</p>
-                            <p class="text-sm font-bold text-blue-600">${{ item.valor }}</p>
+                            <p class="text-xs text-gray-500 truncate">{{ item.negocio?.nombre }}</p>
+                            <p class="text-sm font-bold text-blue-600">${{ (item.valor * item.cantidad).toFixed(2) }}</p>
                             <div class="flex items-center gap-2 mt-2">
                                 <button (click)="actualizarCantidad(item.id, item.cantidad - 1)"
                                     class="w-7 h-7 bg-gray-200 rounded-lg text-sm font-bold hover:bg-gray-300">-</button>
                                 <span class="text-sm font-semibold w-6 text-center">{{ item.cantidad }}</span>
                                 <button (click)="actualizarCantidad(item.id, item.cantidad + 1)"
-                                    class="w-7 h-7 bg-gray-200 rounded-lg text-sm font-bold hover:bg-gray-300">+</button>
+                                    [disabled]="item.cantidad >= item.stock"
+                                    class="w-7 h-7 bg-gray-200 rounded-lg text-sm font-bold hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-40">+</button>
                                 <button (click)="eliminarDelCarrito(item.id)"
                                     class="ml-auto p-1 text-red-500 hover:bg-red-50 rounded-lg">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -156,9 +158,9 @@
                         <span class="text-xl font-bold text-gray-900">${{ totalCarrito.toFixed(2) }}</span>
                     </div>
                     @if (usuarioActual) {
-                    <button
+                    <button (click)="crearPedidos()" [disabled]="creandoPedidos"
                         class="w-full py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg">
-                        Proceder al pago
+                        {{ creandoPedidos ? 'Preparando pedidos...' : 'Proceder al pago' }}
                     </button>
                     } @else {
                     <button (click)="irARegistro()"
@@ -167,10 +169,118 @@
                     </button>
                     }
                 </div>
+
                 }
             </div>
         </div>
     </div>
+    }
+
+    <!-- ==================== MODAL DE CHECKOUT ==================== -->
+    @if (checkoutAbierto && pedidosCheckout.length > 0) {
+    <div class="fixed inset-0 flex items-center justify-center p-4" style="z-index: 70;">
+        <div class="absolute inset-0 bg-slate-950/55 backdrop-blur-sm" (click)="cerrarCheckout()"></div>
+        <section class="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white shadow-2xl">
+            <header class="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-slate-100 bg-white/95 px-6 py-5 backdrop-blur rounded-t-3xl">
+                <div>
+                    <p class="text-sm font-semibold text-blue-600">Checkout seguro</p>
+                    <h2 class="text-2xl font-bold text-slate-900">Elige cómo pagar</h2>
+                    <p class="mt-1 text-sm text-slate-500">Serás redirigido al proveedor para completar la compra.</p>
+                </div>
+                <button (click)="cerrarCheckout()" [disabled]="!!pagoEnProceso"
+                    class="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+                    aria-label="Cerrar checkout">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </header>
+
+            <div class="space-y-5 p-6">
+                @if (pedidosCheckout.length > 1) {
+                <div class="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                    Tu carrito contiene varios negocios. Cada pedido se paga y factura por separado.
+                </div>
+                }
+
+                @for (pedido of pedidosCheckout; track pedido.id) {
+                <article class="rounded-2xl border border-slate-200 p-5 shadow-sm">
+                    <div class="mb-5 flex items-start justify-between gap-4">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Pedido</p>
+                            <h3 class="text-lg font-bold text-slate-900">{{ pedido.negocio.nombre }}</h3>
+                            <p class="text-sm text-slate-500">{{ pedido.detalles.length }} producto(s)</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-slate-400">Total a pagar</p>
+                            <p class="text-2xl font-bold text-slate-900">${{ pedido.total }}</p>
+                        </div>
+                    </div>
+
+                    <p class="mb-3 text-sm font-semibold text-slate-700">Método de pago</p>
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <button (click)="pagar(pedido, 'PAYPAL')" [disabled]="!!pagoEnProceso"
+                            class="flex min-h-16 items-center justify-center gap-3 rounded-xl border-2 border-amber-300 bg-amber-50 px-4 py-3 font-bold text-slate-900 transition hover:border-amber-400 hover:bg-amber-100 disabled:cursor-wait disabled:opacity-50">
+                            <span class="text-xl font-extrabold text-blue-700">Pay</span><span class="-ml-3 text-xl font-extrabold text-sky-500">Pal</span>
+                            @if (pagoEnProceso === pedido.id) { <span class="text-xs font-medium">Redirigiendo...</span> }
+                        </button>
+                        <button (click)="pagar(pedido, 'PAYPHONE')" [disabled]="!!pagoEnProceso"
+                            class="flex min-h-16 items-center justify-center gap-2 rounded-xl border-2 border-blue-200 bg-blue-50 px-4 py-3 font-bold text-blue-700 transition hover:border-blue-400 hover:bg-blue-100 disabled:cursor-wait disabled:opacity-50">
+                            <span class="text-xl">📱</span>
+                            <span>PayPhone</span>
+                            @if (pagoEnProceso === pedido.id) { <span class="text-xs font-medium">Redirigiendo...</span> }
+                        </button>
+                    </div>
+                </article>
+                }
+
+                <div class="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex flex-col-reverse gap-2 sm:flex-row">
+                        <button (click)="cancelarCheckout()" [disabled]="!!pagoEnProceso || cancelandoPedidos"
+                            class="rounded-xl px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50">
+                            {{ cancelandoPedidos ? 'Cancelando...' : 'Cancelar pedido' }}
+                        </button>
+                        <button (click)="volverAlCarrito()" [disabled]="!!pagoEnProceso || cancelandoPedidos"
+                            class="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-50">
+                            Volver al carrito
+                        </button>
+                    </div>
+                    <p class="flex items-center gap-2 text-xs text-slate-500">
+                        <span aria-hidden="true">🔒</span>
+                        El pago se confirma de forma segura en el backend.
+                    </p>
+                </div>
+            </div>
+        </section>
+    </div>
+    }
+
+    <!-- ==================== CONFIRMACIÓN DE COMPRA ==================== -->
+    @if (compraExitosa) {
+    <div class="fixed inset-0 flex items-center justify-center p-4" style="z-index: 80;">
+        <div class="absolute inset-0 bg-slate-950/55 backdrop-blur-sm"></div>
+        <section class="relative w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-2xl">
+            <div class="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-3xl text-emerald-600">✓</div>
+            <p class="text-sm font-semibold text-emerald-600">Pago confirmado</p>
+            <h2 class="mt-1 text-2xl font-bold text-slate-900">¡Compra realizada!</h2>
+            <p class="mt-3 text-sm leading-6 text-slate-500">
+                La venta fue registrada, el stock se actualizó y estamos enviando la factura a tu correo.
+            </p>
+            <button (click)="cerrarCompraExitosa()"
+                class="mt-6 w-full rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700">
+                Seguir comprando
+            </button>
+        </section>
+    </div>
+    }
+
+    @if (!checkoutAbierto && pedidosCheckout.length > 0) {
+    <button (click)="abrirCheckout()"
+        class="fixed bottom-6 left-6 flex items-center gap-2 rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-xl transition hover:-translate-y-0.5 hover:bg-slate-800"
+        style="z-index: 45;">
+        <span aria-hidden="true">🔒</span>
+        Continuar pago
+    </button>
     }
 
     <!-- ==================== CONTENIDO PRINCIPAL ==================== -->
@@ -225,9 +335,9 @@
                                     descripción' }}</p>
                                 <span class="text-2xl font-bold text-blue-600">${{ producto.valor }}</span>
                                 <br>
-                                <button (click)="agregarAlCarrito(producto, $event)"
+                                <button (click)="agregarAlCarrito(producto, $event)" [disabled]="producto.stock === 0"
                                     class="mt-4 px-6 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg">
-                                    Agregar al carrito
+                                    {{ producto.stock > 0 ? 'Agregar al carrito' : 'Producto agotado' }}
                                 </button>
                             </div>
                         </div>
@@ -266,7 +376,7 @@
         <section class="mb-12">
             <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
                 <span class="w-2 h-8 bg-gradient-to-b from-orange-400 to-red-500 rounded-full"></span>
-                Más Vendidos
+                Productos destacados
             </h2>
 
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -295,8 +405,8 @@
                         <h4 class="text-sm font-semibold text-gray-800 line-clamp-1">{{ producto.nombre }}</h4>
                         <div class="flex items-center justify-between mt-2">
                             <span class="text-sm font-bold text-gray-900">${{ producto.valor }}</span>
-                            <button (click)="agregarAlCarrito(producto, $event)"
-                                class="w-7 h-7 bg-blue-500 text-white rounded-lg flex items-center justify-center hover:bg-blue-600 transition-colors">
+                            <button (click)="agregarAlCarrito(producto, $event)" [disabled]="producto.stock === 0"
+                                class="w-7 h-7 bg-blue-500 text-white rounded-lg flex items-center justify-center hover:bg-blue-600 transition-colors disabled:cursor-not-allowed disabled:bg-gray-300">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -312,18 +422,47 @@
 
         <!-- ===== TODOS LOS PRODUCTOS ===== -->
         <section>
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
                 <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
                     <span class="w-2 h-8 bg-gradient-to-b from-green-400 to-emerald-500 rounded-full"></span>
-                    Todos los Productos
+                    Explora el catálogo
                 </h2>
-                <select [(ngModel)]="negocioSeleccionado" (change)="filtrarPorNegocio()"
-                    class="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none">
-                    <option value="">🏪 Todas las tiendas</option>
-                    @for (negocio of negocios; track negocio.slug) {
-                    <option [value]="negocio.slug">{{ negocio.nombre }}</option>
-                    }
-                </select>
+                @if (!cargando) {
+                <span class="text-sm text-gray-500">{{ productosFiltrados.length }} resultado(s)</span>
+                }
+            </div>
+
+            <div class="mb-6 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                <div class="grid gap-3 lg:grid-cols-[minmax(240px,1fr)_auto_auto_auto]">
+                    <label class="relative block">
+                        <span class="sr-only">Buscar productos</span>
+                        <svg class="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.35-4.35M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z" />
+                        </svg>
+                        <input [(ngModel)]="busqueda" type="search" placeholder="Buscar producto, descripción o tienda..."
+                            class="w-full rounded-xl border border-gray-200 py-2.5 pl-10 pr-4 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100">
+                    </label>
+                    <select [(ngModel)]="negocioSeleccionado" (change)="filtrarPorNegocio()"
+                        class="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-blue-100">
+                        <option value="">Todas las tiendas</option>
+                        @for (negocio of negocios; track negocio.slug) {
+                        <option [value]="negocio.slug">{{ negocio.nombre }}</option>
+                        }
+                    </select>
+                    <select [(ngModel)]="disponibilidad"
+                        class="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-blue-100">
+                        <option value="todos">Todo el inventario</option>
+                        <option value="disponibles">Con stock</option>
+                        <option value="agotados">Agotados</option>
+                    </select>
+                    <select [(ngModel)]="ordenProductos"
+                        class="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-blue-100">
+                        <option value="recientes">Más recientes</option>
+                        <option value="precio_asc">Menor precio</option>
+                        <option value="precio_desc">Mayor precio</option>
+                        <option value="nombre">Nombre A–Z</option>
+                    </select>
+                </div>
             </div>
 
             @if (cargando) {
@@ -336,16 +475,19 @@
                 </div>
                 }
             </div>
-            } @else if (productos.length === 0) {
+            } @else if (productosFiltrados.length === 0) {
             <div class="text-center py-16">
                 <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-white border flex items-center justify-center">📭
                 </div>
-                <h3 class="text-lg font-semibold text-gray-800 mb-2">Sin productos aún</h3>
-                <p class="text-gray-500">Vuelve pronto para descubrir nuevas ofertas</p>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">No encontramos productos</h3>
+                <p class="text-gray-500 mb-5">Prueba con otro nombre, tienda o disponibilidad.</p>
+                <button (click)="limpiarFiltros()" class="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
+                    Limpiar filtros
+                </button>
             </div>
             } @else {
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-                @for (producto of productos; track producto.id) {
+                @for (producto of productosFiltrados; track producto.id) {
                 <div (click)="abrirDetalle(producto)"
                     class="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden cursor-pointer relative"
                     [class.ring-2]="productoEsNuevo(producto.id)" [class.ring-blue-400]="productoEsNuevo(producto.id)">

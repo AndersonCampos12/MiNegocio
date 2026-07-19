@@ -21,6 +21,10 @@ export class ReporteService {
         return this.http.get(`${this.apiUrl}?socioId=${socioId}`);
     }
 
+    obtenerRecomendaciones(dias = 30, limite = 5): Observable<any> {
+        return this.http.post('http://localhost:3000/api/recomendaciones', { dias, limite });
+    }
+
     enviarFacturaPorCorreo(ventaId: string): Observable<{ mensaje: string; idCorreo: string }> {
         return this.http.post<{ mensaje: string; idCorreo: string }>(
             `${this.apiUrl}/factura/${ventaId}/enviar`,

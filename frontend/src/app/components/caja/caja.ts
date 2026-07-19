@@ -368,7 +368,9 @@ export class Caja implements OnInit, OnDestroy {
         this.cargarInventario();
       },
       error: (err: any) => {
-        console.log(`Error en transacción: ${err.error?.mensaje || 'Error desconocido'}`);
+        const mensaje = err.error?.mensaje || 'No se pudo completar la venta';
+        console.error('Error en transacción:', mensaje);
+        this.toast.error(mensaje);
       }
     });
   }

@@ -30,6 +30,10 @@ export class Reportes implements OnInit {
   urlFacturaSegura: SafeResourceUrl | null = null;
   ventaSeleccionadaId: string | null = null;
   descargandoFactura = false;
+  recomendaciones: any[] = [];
+  mensajeRecomendaciones = '';
+  fuenteRecomendaciones = '';
+  cargandoRecomendaciones = false;
 
   constructor(
     private reporteService: ReporteService,
@@ -68,6 +72,27 @@ export class Reportes implements OnInit {
       error: (err) => {
         console.error('Error cargando reportes:', err);
         this.cargando = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  generarRecomendaciones() {
+    if (this.cargandoRecomendaciones) return;
+    this.cargandoRecomendaciones = true;
+
+    this.reporteService.obtenerRecomendaciones().subscribe({
+      next: (data) => {
+        this.recomendaciones = data.recomendaciones || [];
+        this.mensajeRecomendaciones = data.mensaje || '';
+        this.fuenteRecomendaciones = data.fuente || '';
+        this.cargandoRecomendaciones = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error generando recomendaciones:', err);
+        this.cargandoRecomendaciones = false;
+        this.toast.error('No se pudieron generar las recomendaciones');
         this.cdr.detectChanges();
       }
     });

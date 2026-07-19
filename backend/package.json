@@ -4,6 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev": "nodemon src/index.ts",
+    "start": "ts-node src/index.ts",
+    "ai:setup": "ollama pull llama3.2:3b",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -21,9 +24,9 @@
     "google-auth-library": "^10.7.0",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.2.0",
+    "nodemailer": "^9.0.3",
     "pg": "^8.22.0",
     "puppeteer": "^25.3.0",
-    "resend": "^6.17.2",
     "socket.io": "^4.8.3",
     "zod": "^4.4.3"
   },
@@ -34,6 +37,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.1.0",
     "@types/node": "^25.9.4",
+    "@types/nodemailer": "^8.0.1",
     "@types/pg": "^8.20.0",
     "nodemon": "^3.1.14",
     "prisma": "^7.8.0",

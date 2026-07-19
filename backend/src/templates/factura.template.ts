@@ -100,7 +100,7 @@ export function generarHtmlFactura(
                 <p><span class="bold">Ticket</span> <span>${venta.id.split('-')[0].toUpperCase()}</span></p>
                 <p><span class="bold">Fecha</span> <span>${new Date(venta.creadoEn).toLocaleString()}</span></p>
                 <p><span class="bold">Cliente</span> <span>${venta.cliente?.nombre || 'Consumidor Final'}</span></p>
-                <p><span class="bold">Cajero</span> <span>${venta.socio?.nombre || 'Caja Principal'}</span></p>
+                <p><span class="bold">Cajero</span> <span>${venta.socio?.nombre || 'Venta en línea'}</span></p>
                 <p><span class="bold">Método</span> <span>${venta.metodoPago}</span></p>
             </div>
 

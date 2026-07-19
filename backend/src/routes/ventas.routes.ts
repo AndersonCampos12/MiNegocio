@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { Server } from 'socket.io';
 import { VentasService } from '../services/ventas.service';
 import { verificarToken, verificarRol, AuthRequest } from '../middlewares/auth.middleware';
+import { obtenerRespuestaError } from '../errors/app.error';
 
 export const ventasRoutesFactory = (io: Server) => {
     const router = Router();
@@ -39,8 +40,10 @@ export const ventasRoutesFactory = (io: Server) => {
                 // 3. 🚨 IMPORTANTE: Retornamos el objeto `venta` directamente 
                 // para que Angular pueda leer `resultadoVenta.id` e imprimir la factura
                 res.status(201).json(venta);
-            } catch (error: any) {
-                res.status(400).json({ mensaje: error.message });
+            } catch (error: unknown) {
+                console.error('Error registrando venta de caja:', error);
+                const respuesta = obtenerRespuestaError(error);
+                res.status(respuesta.statusCode).json({ mensaje: respuesta.mensaje });
             }
         }
     );

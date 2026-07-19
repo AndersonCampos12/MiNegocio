@@ -17,19 +17,25 @@ export class ClientesService {
         return this.http.get(`${this.apiUrl}/buscar`, { params });
     }
 
-    crearCliente(cliente: any) {
-        return this.http.post(`${this.apiUrl}`, cliente);
+    crearCliente(cliente: any, negocioId?: string) {
+        return this.http.post(`${this.apiUrl}`, { ...cliente, ...(negocioId ? { negocioId } : {}) });
     }
 
-    obtenerClientes(estado: 'activos' | 'inactivos' | 'todos' = 'activos') {
-        return this.http.get<any[]>(this.apiUrl, { params: new HttpParams().set('estado', estado) });
+    obtenerClientes(estado: 'activos' | 'inactivos' | 'todos' = 'activos', negocioId?: string) {
+        let params = new HttpParams().set('estado', estado);
+        if (negocioId) params = params.set('negocioId', negocioId);
+        return this.http.get<any[]>(this.apiUrl, { params });
     }
 
-    actualizarCliente(membresiaId: string, datos: { nombre: string; email: string }) {
-        return this.http.put(`${this.apiUrl}/${membresiaId}`, datos);
+    actualizarCliente(membresiaId: string, datos: { nombre: string; email: string }, negocioId?: string) {
+        let params = new HttpParams();
+        if (negocioId) params = params.set('negocioId', negocioId);
+        return this.http.put(`${this.apiUrl}/${membresiaId}`, datos, { params });
     }
 
-    cambiarEstado(membresiaId: string, activo: boolean) {
-        return this.http.patch(`${this.apiUrl}/${membresiaId}/estado`, { activo });
+    cambiarEstado(membresiaId: string, activo: boolean, negocioId?: string) {
+        let params = new HttpParams();
+        if (negocioId) params = params.set('negocioId', negocioId);
+        return this.http.patch(`${this.apiUrl}/${membresiaId}/estado`, { activo }, { params });
     }
 }

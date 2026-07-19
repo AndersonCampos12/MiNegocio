@@ -16,6 +16,9 @@ import negociosRoutes from './routes/negocios.routes';
 import usuariosRoutes from './routes/usuarios.routes';
 import clientesRoutes from './routes/clientes.routes';
 import tiendaRoutes from './routes/tienda.routes';
+import pedidosRoutes from './routes/pedidos.routes';
+import recomendacionesRoutes from './routes/recomendaciones.routes';
+import { pagosRoutesFactory } from './routes/pagos.routes';
 import path from 'path';
 import multer from 'multer';
 
@@ -38,6 +41,8 @@ app.use('/api/negocios', negociosRoutes);
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/clientes', clientesRoutes);
 app.use('/api/tienda', tiendaRoutes);
+app.use('/api/pedidos', pedidosRoutes);
+app.use('/api/recomendaciones', recomendacionesRoutes);
 // app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // ==========================================
@@ -92,6 +97,7 @@ io.on('connection', (socket) => {
 
 // Pasamos el IO a las rutas de ventas como ya lo tenías
 app.use('/api/ventas', ventasRoutesFactory(io));
+app.use('/api/pagos', pagosRoutesFactory(io));
 
 app.get('/api/health', (req, res) => {
     res.status(200).json({ estado: 'ok', mensaje: 'Servidor corriendo' });

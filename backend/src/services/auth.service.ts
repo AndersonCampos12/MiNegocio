@@ -9,6 +9,8 @@ import { AppError, CuentaNoActivadaError } from '../errors/app.error';
 
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const googleClient = new OAuth2Client(CLIENT_ID);
+const CODE_TTL_MINUTES = Math.max(1, Number(process.env.CODE_TTL_MINUTES || 10));
+const MAX_VERIFICATION_ATTEMPTS = Math.max(1, Number(process.env.MAX_VERIFICATION_ATTEMPTS || 5));
 
 export class AuthService {
     private correoService = new CorreoService();
@@ -24,7 +26,7 @@ export class AuthService {
     private async prepararYEnviarCodigo(socioId: string, email: string, nombre: string, proposito: PropositoCodigo) {
         const codigo = this.generarCodigo();
         const ahora = new Date();
-        const expira = new Date(ahora.getTime() + 10 * 60 * 1000);
+        const expira = new Date(ahora.getTime() + CODE_TTL_MINUTES * 60 * 1000);
 
         await prisma.socio.update({
             where: { id: socioId },
@@ -49,7 +51,7 @@ export class AuthService {
                     <p>Hola, <strong>${nombre}</strong>.</p>
                     <p>Tu código de verificación es:</p>
                     <p style="font-size:32px;font-weight:700;letter-spacing:8px;color:#2563eb">${codigo}</p>
-                    <p>El código vence en 10 minutos. Si no realizaste esta solicitud, ignora este mensaje.</p>
+                    <p>El código vence en ${CODE_TTL_MINUTES} minutos. Si no realizaste esta solicitud, ignora este mensaje.</p>
                 </div>`
         });
     }
@@ -196,7 +198,7 @@ export class AuthService {
         if (!socio.codigoVerificacionHash || !socio.codigoVerificacionExpira || socio.codigoVerificacionExpira < new Date()) {
             throw new AppError('El código expiró. Solicita uno nuevo.', 410);
         }
-        if (socio.intentosVerificacion >= 5) throw new AppError('Superaste el número de intentos. Solicita un código nuevo.', 429);
+        if (socio.intentosVerificacion >= MAX_VERIFICATION_ATTEMPTS) throw new AppError('Superaste el número de intentos. Solicita un código nuevo.', 429);
 
         if (this.hashCodigo(codigo) !== socio.codigoVerificacionHash) {
             await prisma.socio.update({
@@ -245,7 +247,7 @@ export class AuthService {
         if (!socio.codigoVerificacionHash || !socio.codigoVerificacionExpira || socio.codigoVerificacionExpira < new Date()) {
             throw new AppError('El código expiró. Solicita uno nuevo.', 410);
         }
-        if (socio.intentosVerificacion >= 5) throw new AppError('Superaste el número de intentos. Solicita un código nuevo.', 429);
+        if (socio.intentosVerificacion >= MAX_VERIFICATION_ATTEMPTS) throw new AppError('Superaste el número de intentos. Solicita un código nuevo.', 429);
 
         if (this.hashCodigo(codigo) !== socio.codigoVerificacionHash) {
             await prisma.socio.update({

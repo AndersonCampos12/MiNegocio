@@ -48,10 +48,12 @@ export const crearClienteCtrl = async (req: AuthRequest, res: Response) => {
 export const obtenerClientesCtrl = async (req: AuthRequest, res: Response) => {
     try {
         const negocioId = obtenerNegocioId(req);
-        if (!negocioId) return res.status(400).json({ mensaje: 'No se pudo determinar la empresa actual.' });
+        if (req.socio?.rol !== 'SUPERADMIN' && !negocioId) {
+            return res.status(400).json({ mensaje: 'No se pudo determinar la empresa actual.' });
+        }
         const estado = String(req.query.estado || 'activos');
         const activo = estado === 'todos' ? undefined : estado !== 'inactivos';
-        return res.json(await clientesService.obtenerClientes(negocioId, activo));
+        return res.json(await clientesService.obtenerClientes(negocioId || undefined, activo));
     } catch (error: any) {
         return res.status(500).json({ mensaje: error.message || 'No fue posible cargar los clientes.' });
     }

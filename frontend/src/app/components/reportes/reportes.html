@@ -114,6 +114,45 @@
             </div>
         </div>
 
+        <div class="bg-white rounded-2xl border border-purple-100 shadow-sm p-5 sm:p-6 mb-8">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-base font-semibold text-gray-800">Recomendaciones con IA</h3>
+                        @if (fuenteRecomendaciones) {
+                        <span class="text-[10px] font-bold uppercase px-2 py-1 rounded-full bg-purple-50 text-purple-600">
+                            {{ fuenteRecomendaciones === 'ollama' ? 'Ollama' : 'Ranking automático' }}
+                        </span>
+                        }
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Productos con más ventas en los últimos 30 días y stock disponible.</p>
+                </div>
+                <button (click)="generarRecomendaciones()" [disabled]="cargandoRecomendaciones"
+                    class="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+                    {{ cargandoRecomendaciones ? 'Analizando...' : 'Generar recomendaciones' }}
+                </button>
+            </div>
+
+            @if (mensajeRecomendaciones) {
+            <p class="text-xs text-gray-500 mb-4">{{ mensajeRecomendaciones }}</p>
+            }
+
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                @for (producto of recomendaciones; track producto.id; let i = $index) {
+                <div class="rounded-xl border border-gray-100 bg-gray-50/70 p-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="text-sm font-bold text-gray-800">#{{ i + 1 }} {{ producto.nombre }}</p>
+                            <p class="text-xs text-purple-600 font-semibold mt-1">{{ producto.cantidadVendida }} unidades vendidas</p>
+                        </div>
+                        <span class="text-xs text-gray-500 whitespace-nowrap">Stock: {{ producto.stock }}</span>
+                    </div>
+                    <p class="text-xs text-gray-600 mt-3 leading-relaxed">{{ producto.motivo }}</p>
+                </div>
+                }
+            </div>
+        </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <div class="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6">
                 <h3 class="text-base font-semibold text-gray-800 mb-4">Tendencia de Ventas</h3>

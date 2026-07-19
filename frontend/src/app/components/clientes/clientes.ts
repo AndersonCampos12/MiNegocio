@@ -8,6 +8,7 @@ import { AuthService } from '../../services/auth';
 import { ClientesService } from '../../services/clientes';
 import { ToastService } from '../../services/toast';
 import { obtenerMensajeHttp } from '../../utils/http-error';
+import { NegociosService } from '../../services/negocios';
 
 @Component({
   selector: 'app-clientes',
@@ -29,10 +30,13 @@ export class Clientes implements OnInit {
   clienteEditando: any = null;
   clientePorCambiar: any = null;
   formulario = this.formularioVacio();
+  negocios: any[] = [];
+  negocioSeleccionado = '';
 
   constructor(
     private authService: AuthService,
     private clientesService: ClientesService,
+    private negociosService: NegociosService,
     private toast: ToastService,
     private cdr: ChangeDetectorRef
   ) { }
@@ -40,12 +44,29 @@ export class Clientes implements OnInit {
   ngOnInit() {
     this.rolActual = this.authService.getRole();
     this.usuarioActual = this.authService.getSocioActual();
-    this.cargarClientes();
+    if (this.esSuperadmin) {
+      this.negociosService.obtenerTodos().subscribe({
+        next: negocios => {
+          this.negocios = negocios;
+          this.cargarClientes();
+        },
+        error: err => {
+          this.toast.error(obtenerMensajeHttp(err, 'No fue posible cargar los negocios.'));
+          this.cargarClientes();
+        }
+      });
+    } else {
+      this.cargarClientes();
+    }
+  }
+
+  get esSuperadmin(): boolean {
+    return this.rolActual === 'SUPERADMIN';
   }
 
   get clientesFiltrados() {
     const texto = this.filtroTexto.trim().toLowerCase();
-    return this.clientes.filter(cliente => !texto || [cliente.nombre, cliente.cedula, cliente.email]
+    return this.clientes.filter(cliente => !texto || [cliente.nombre, cliente.cedula, cliente.email, cliente.negocioNombre]
       .some(valor => String(valor ?? '').toLowerCase().includes(texto)));
   }
 
@@ -59,7 +80,7 @@ export class Clientes implements OnInit {
 
   cargarClientes() {
     this.cargando = true;
-    this.clientesService.obtenerClientes(this.estadoSeleccionado).subscribe({
+    this.clientesService.obtenerClientes(this.estadoSeleccionado, this.negocioSeleccionado || undefined).subscribe({
       next: clientes => {
         this.clientes = clientes;
         this.cargando = false;
@@ -82,7 +103,7 @@ export class Clientes implements OnInit {
   abrirModal(cliente?: any) {
     this.clienteEditando = cliente || null;
     this.formulario = cliente
-      ? { nombre: cliente.nombre, cedula: cliente.cedula || '', email: cliente.email }
+      ? { nombre: cliente.nombre, cedula: cliente.cedula || '', email: cliente.email, negocioId: cliente.negocioId }
       : this.formularioVacio();
     this.mostrarModal = true;
   }
@@ -98,15 +119,19 @@ export class Clientes implements OnInit {
     const nombre = this.formulario.nombre.trim();
     const cedula = this.formulario.cedula.trim();
     const email = this.formulario.email.trim().toLowerCase();
+    const negocioId = this.esSuperadmin
+      ? (this.clienteEditando?.negocioId || this.formulario.negocioId)
+      : undefined;
 
     if (nombre.length < 2 || nombre.length > 100) return this.toast.warning('El nombre debe tener entre 2 y 100 caracteres.');
     if (!this.clienteEditando && !/^\d{10}(\d{3})?$/.test(cedula)) return this.toast.warning('Ingresa una cédula de 10 dígitos o un RUC de 13 dígitos.');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return this.toast.warning('Ingresa un correo electrónico válido.');
+    if (this.esSuperadmin && !negocioId) return this.toast.warning('Selecciona el negocio al que pertenecerá el cliente.');
 
     this.guardando = true;
     const peticion = this.clienteEditando
-      ? this.clientesService.actualizarCliente(this.clienteEditando.membresiaId, { nombre, email })
-      : this.clientesService.crearCliente({ nombre, cedula, email });
+      ? this.clientesService.actualizarCliente(this.clienteEditando.membresiaId, { nombre, email }, negocioId)
+      : this.clientesService.crearCliente({ nombre, cedula, email }, negocioId);
 
     peticion.pipe(finalize(() => {
       this.guardando = false;
@@ -133,7 +158,7 @@ export class Clientes implements OnInit {
     const cliente = this.clientePorCambiar;
     if (!cliente || this.procesandoId) return;
     this.procesandoId = cliente.membresiaId;
-    this.clientesService.cambiarEstado(cliente.membresiaId, !cliente.activo).pipe(finalize(() => {
+    this.clientesService.cambiarEstado(cliente.membresiaId, !cliente.activo, this.esSuperadmin ? cliente.negocioId : undefined).pipe(finalize(() => {
       this.procesandoId = null;
       this.cdr.detectChanges();
     })).subscribe({
@@ -152,6 +177,6 @@ export class Clientes implements OnInit {
   }
 
   private formularioVacio() {
-    return { nombre: '', cedula: '', email: '' };
+    return { nombre: '', cedula: '', email: '', negocioId: this.negocioSeleccionado || '' };
   }
 }

@@ -19,4 +19,10 @@ export class TiendaService {
     obtenerNegocios(): Observable<any[]> {
         return this.http.get<any[]>(`${API}/negocios`);
     }
+
+    obtenerRecomendaciones(negocioSlug?: string): Observable<any> {
+        let params = new HttpParams();
+        if (negocioSlug) params = params.set('negocio', negocioSlug);
+        return this.http.get<any>('http://localhost:3000/api/recomendaciones/tienda', { params });
+    }
 }

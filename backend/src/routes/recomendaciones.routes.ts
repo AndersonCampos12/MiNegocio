@@ -6,6 +6,17 @@ import { RecomendacionesService } from '../services/recomendaciones.service';
 const router = Router();
 const service = new RecomendacionesService();
 
+router.get('/tienda', async (req, res) => {
+    try {
+        const slug = String(req.query.negocio || '').trim() || undefined;
+        const resultado = await service.obtenerParaTienda(slug, 30, 4);
+        res.json(resultado);
+    } catch (error) {
+        console.error('Error al obtener recomendaciones de tienda:', error);
+        res.status(500).json({ mensaje: 'No se pudieron cargar las recomendaciones.' });
+    }
+});
+
 router.post(
     '/',
     verificarToken,

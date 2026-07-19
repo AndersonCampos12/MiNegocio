@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon src/index.ts",
     "start": "ts-node src/index.ts",
-    "ai:setup": "ollama pull llama3.2:3b",
+    "ai:setup": "ollama pull qwen2.5:0.5b",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

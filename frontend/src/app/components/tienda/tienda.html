@@ -372,13 +372,28 @@
         }
 
         <!-- ===== MÁS VENDIDOS ===== -->
-        @if (!cargando && masVendidos.length > 0) {
+        @if (!cargando && (cargandoRecomendaciones || masVendidos.length > 0)) {
         <section class="mb-12">
             <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
                 <span class="w-2 h-8 bg-gradient-to-b from-orange-400 to-red-500 rounded-full"></span>
-                Productos destacados
+                Recomendados para ti
             </h2>
 
+            @if (cargandoRecomendaciones) {
+            <div class="mb-4 flex items-center gap-2 text-sm text-gray-500">
+                <span class="h-2.5 w-2.5 animate-pulse rounded-full bg-violet-500"></span>
+                Qwen está analizando las ventas recientes...
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                @for (i of [1,2,3,4]; track i) {
+                <div class="h-64 animate-pulse rounded-2xl border border-gray-100 bg-white p-3">
+                    <div class="h-36 rounded-xl bg-gray-200"></div>
+                    <div class="mt-4 h-3 w-2/3 rounded bg-gray-200"></div>
+                    <div class="mt-2 h-3 w-1/2 rounded bg-gray-100"></div>
+                </div>
+                }
+            </div>
+            } @else {
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 @for (producto of masVendidos; track producto.id) {
                 <div (click)="abrirDetalle(producto)"
@@ -403,6 +418,7 @@
                     <div class="p-3">
                         <p class="text-xs font-medium text-gray-500 mb-1">{{ producto.negocio?.nombre }}</p>
                         <h4 class="text-sm font-semibold text-gray-800 line-clamp-1">{{ producto.nombre }}</h4>
+                        <p class="mt-1 text-xs text-gray-500 line-clamp-2">{{ producto.motivoRecomendacion }}</p>
                         <div class="flex items-center justify-between mt-2">
                             <span class="text-sm font-bold text-gray-900">${{ producto.valor }}</span>
                             <button (click)="agregarAlCarrito(producto, $event)" [disabled]="producto.stock === 0"
@@ -417,6 +433,7 @@
                 </div>
                 }
             </div>
+            }
         </section>
         }
 

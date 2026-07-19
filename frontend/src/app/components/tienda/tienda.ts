@@ -39,6 +39,7 @@ export class Tienda implements OnInit, OnDestroy {
   busqueda = '';
   disponibilidad = 'todos';
   ordenProductos = 'recientes';
+  cargandoRecomendaciones = false;
 
   // Carrusel
   slideActual: number = 0;
@@ -77,10 +78,7 @@ export class Tienda implements OnInit, OnDestroy {
           this.productos = data;
           // Últimos 5 para el carrusel
           this.ultimosProductos = data.slice(0, 5);
-          // Simular más vendidos (menor stock = más vendido)
-          this.masVendidos = [...data]
-            .sort((a, b) => a.stock - b.stock)
-            .slice(0, 8);
+          this.cargarRecomendaciones();
           this.cargando = false;
           this.cdr.detectChanges();
         },
@@ -103,6 +101,26 @@ export class Tienda implements OnInit, OnDestroy {
 
   filtrarPorNegocio() {
     this.cargarDatos();
+  }
+
+  private cargarRecomendaciones() {
+    this.cargandoRecomendaciones = true;
+    this.tiendaService.obtenerRecomendaciones(this.negocioSeleccionado || undefined).subscribe({
+      next: respuesta => {
+        const productosPorId = new Map(this.productos.map(producto => [producto.id, producto]));
+        this.masVendidos = (respuesta.recomendaciones || []).flatMap((recomendacion: any) => {
+          const producto = productosPorId.get(recomendacion.id);
+          return producto ? [{ ...producto, motivoRecomendacion: recomendacion.motivo }] : [];
+        });
+        this.cargandoRecomendaciones = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.masVendidos = [];
+        this.cargandoRecomendaciones = false;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   conectarWebSocket() {

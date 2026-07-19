@@ -1,6 +1,13 @@
 # Mi Negocio Al Día
 Sistema distribuido de Punto de Venta (POS), gestión de inventario y marketplace público para emprendedores. Soporta múltiples socios operando sobre un mismo inventario en tiempo real, garantizando consistencia de datos bajo alta concurrencia.
 
+## Novedades principales
+
+- **Autenticación segura:** acceso por roles y Google, verificación por correo, recuperación de contraseña, cierre automático por token expirado y perfil editable.
+- **Gestión multiempresa:** administración de negocios, usuarios y clientes independientes por empresa, integrada con caja e inventario.
+- **Ecommerce y pagos:** pedidos por negocio con PayPal y PayPhone; la venta, el stock y la factura se confirman desde el backend después del pago.
+- **Tienda inteligente:** carrito persistente, filtros y recomendaciones basadas en ventas mediante Ollama, con ranking alternativo automático.
+
 ---
 
 ## Tabla de Contenidos
@@ -126,10 +133,10 @@ Ollama debe estar ejecutándose en `http://127.0.0.1:11434`. Las variables opcio
 
 ```env
 OLLAMA_URL="http://127.0.0.1:11434"
-OLLAMA_MODEL="llama3.2:3b"
+OLLAMA_MODEL="qwen2.5:0.5b"
 ```
 
-No se expone Ollama al navegador. Angular llama a `POST /api/recomendaciones` y el backend exige un JWT válido y uno de los roles autorizados. En **Reportes**, usa el botón **Generar recomendaciones**.
+No se expone Ollama al navegador. Angular consulta el backend para mostrar recomendaciones en la tienda y generar recomendaciones privadas en **Reportes**.
 
 Luego se arranca el backend normalmente con `npm run dev`; no hay que entrenar modelos ni instalar librerías adicionales de IA.
 

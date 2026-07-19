@@ -31,6 +31,13 @@ import { ToastService } from '../../services/toast';
           </div>
 
           <div class="flex items-center gap-4">
+            <a routerLink="/perfil" aria-label="Mi perfil"
+              class="flex items-center gap-2 text-xs font-semibold text-gray-600 hover:text-blue-600 bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-200 px-3 py-2 rounded-lg transition-all active:scale-95">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A9 9 0 1118.88 17.8M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span class="hidden sm:inline">Mi perfil</span>
+            </a>
             <div class="flex items-center gap-3">
               <div class="relative">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm shadow-md ring-2 ring-blue-100">

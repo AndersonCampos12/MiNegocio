@@ -1,5 +1,5 @@
 import { Component, OnInit, NgZone, ChangeDetectorRef } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth';
 import { SocketService } from '../../services/socket'; // <-- NUEVO IMPORT
@@ -19,16 +19,20 @@ export class Login implements OnInit {
   password = '';
   errorMsg = '';
   isLoading = false;
+  requiereVerificacion = false;
+  slugTienda = '';
 
   constructor(
     private authService: AuthService,
     private router: Router,
+    private route: ActivatedRoute,
     private ngZone: NgZone,
     private cdr: ChangeDetectorRef,
     private socketService: SocketService // <-- INYECTAR AQUÍ
   ) { }
 
   ngOnInit() {
+    this.slugTienda = this.route.snapshot.paramMap.get('slug') || '';
     if (typeof google !== 'undefined') {
       google.accounts.id.initialize({
         client_id: environment.googleClientId,
@@ -47,6 +51,10 @@ export class Login implements OnInit {
     }
   }
 
+  get rutaRegistro(): any[] {
+    return this.slugTienda ? ['/tienda', this.slugTienda, 'registro'] : ['/registro'];
+  }
+
   ejecutarLogin() {
     if (!this.email || !this.password) {
       this.errorMsg = 'Por favor, ingresa tu correo y contraseña.';
@@ -55,6 +63,7 @@ export class Login implements OnInit {
 
     this.isLoading = true;
     this.errorMsg = '';
+    this.requiereVerificacion = false;
 
     this.authService.login(this.email, this.password).subscribe({
       next: (res: any) => {
@@ -71,9 +80,16 @@ export class Login implements OnInit {
       error: (err) => {
         // Obligamos a Angular a mostrar el error y quitar el spinner
         this.ngZone.run(() => {
+          this.requiereVerificacion = !!err.error?.requiereVerificacion;
           this.detenerCarga(err.error?.mensaje || 'Credenciales incorrectas. Inténtalo de nuevo.');
         });
       }
+    });
+  }
+
+  irAVerificacion() {
+    this.router.navigate(['/verificacion'], {
+      queryParams: { email: this.email.trim().toLowerCase() }
     });
   }
 

@@ -10,15 +10,26 @@ export class ClientesService {
 
     constructor(private http: HttpClient) { }
 
-    buscarClientes(termino: string, negocioId: string) {
-        const params = new HttpParams()
-            .set('search', termino)
-            .set('negocioId', negocioId);
+    buscarClientes(termino: string, negocioId?: string) {
+        let params = new HttpParams().set('search', termino);
+        if (negocioId) params = params.set('negocioId', negocioId);
 
         return this.http.get(`${this.apiUrl}/buscar`, { params });
     }
 
     crearCliente(cliente: any) {
         return this.http.post(`${this.apiUrl}`, cliente);
+    }
+
+    obtenerClientes(estado: 'activos' | 'inactivos' | 'todos' = 'activos') {
+        return this.http.get<any[]>(this.apiUrl, { params: new HttpParams().set('estado', estado) });
+    }
+
+    actualizarCliente(membresiaId: string, datos: { nombre: string; email: string }) {
+        return this.http.put(`${this.apiUrl}/${membresiaId}`, datos);
+    }
+
+    cambiarEstado(membresiaId: string, activo: boolean) {
+        return this.http.patch(`${this.apiUrl}/${membresiaId}/estado`, { activo });
     }
 }

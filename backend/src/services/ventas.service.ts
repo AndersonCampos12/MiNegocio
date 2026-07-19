@@ -21,19 +21,47 @@ export class VentasService {
         logger.info(`Iniciando venta transaccional — negocio: ${data.negocioId} — cajero: ${data.socioId}`, 'VentasService');
 
         return await prisma.$transaction(async (tx) => {
+            const cliente = await tx.socio.findFirst({
+                where: { id: data.clienteId, rol: 'CLIENTE' },
+                select: { id: true, nombre: true, email: true }
+            });
+            if (!cliente) throw new Error('El cliente seleccionado no existe.');
+
+            await tx.clienteNegocio.upsert({
+                where: {
+                    clienteId_negocioId: {
+                        clienteId: cliente.id,
+                        negocioId: data.negocioId
+                    }
+                },
+                update: { activo: true },
+                create: {
+                    clienteId: cliente.id,
+                    negocioId: data.negocioId,
+                    nombreReferencia: cliente.nombre,
+                    emailContacto: cliente.email
+                }
+            });
+
             // 1. Validar stock de cada ítem antes de tocar nada
+            const itemsValidados: { productoId: string; cantidad: number; precioUnit: number }[] = [];
             for (const item of data.detalles) {
-                const producto = await tx.producto.findUnique({
-                    where: { id: item.productoId }
+                const producto = await tx.producto.findFirst({
+                    where: { id: item.productoId, negocioId: data.negocioId, activo: true }
                 });
                 if (!producto || producto.stock < item.cantidad) {
                     logger.warn(`Stock insuficiente para producto ${item.productoId}`, 'VentasService');
                     throw new StockInsuficienteError(producto?.nombre || 'Desconocido');
                 }
+                itemsValidados.push({
+                    productoId: producto.id,
+                    cantidad: item.cantidad,
+                    precioUnit: Number(producto.valor)
+                });
             }
 
             // 2. Recalcular de forma segura los totales en el lado del servidor
-            const subtotalCalculado = data.detalles.reduce(
+            const subtotalCalculado = itemsValidados.reduce(
                 (acc, item) => acc + (item.cantidad * item.precioUnit),
                 0
             );
@@ -51,7 +79,7 @@ export class VentasService {
                     impuestos: impuestosCalculados,
                     total: totalCalculado,
                     detalles: {
-                        create: data.detalles.map(item => ({
+                        create: itemsValidados.map(item => ({
                             productoId: item.productoId,
                             cantidad: item.cantidad,
                             precioUnit: item.precioUnit
@@ -61,7 +89,7 @@ export class VentasService {
             });
 
             // 4. Descontar stock y emitir evento en tiempo real
-            for (const item of data.detalles) {
+            for (const item of itemsValidados) {
                 const actualizado = await tx.producto.update({
                     where: { id: item.productoId },
                     data: { stock: { decrement: item.cantidad } }

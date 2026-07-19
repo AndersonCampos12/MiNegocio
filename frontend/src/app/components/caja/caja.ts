@@ -197,11 +197,9 @@ export class Caja implements OnInit, OnDestroy {
 
     const nuevoCliente = {
       ...this.clienteForm.value,
-      rol: 'CLIENTE',
       nombre: this.clienteForm.controls.nombre.value?.trim(),
       email: this.clienteForm.controls.email.value?.trim().toLowerCase(),
-      cedula: this.clienteForm.controls.cedula.value?.trim(),
-      negocioId: this.usuarioActual?.negocioId
+      cedula: this.clienteForm.controls.cedula.value?.trim()
     };
 
     this.guardandoCliente = true;
@@ -213,10 +211,10 @@ export class Caja implements OnInit, OnDestroy {
         this.cdr.detectChanges();
       })
     ).subscribe({
-      next: (clienteCreado: any) => {
-        this.seleccionarCliente(clienteCreado);
+      next: (resultado: any) => {
+        this.seleccionarCliente(resultado.cliente);
         this.mostrarModalCliente = false;
-        this.toast.success('Cliente registrado exitosamente');
+        this.toast.success(resultado.mensaje || 'Cliente agregado correctamente');
       },
       error: (err: any) => {
         const mensaje = obtenerMensajeHttp(err, 'No fue posible registrar el cliente.');

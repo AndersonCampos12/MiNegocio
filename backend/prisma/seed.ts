@@ -133,6 +133,8 @@ const SOCIOS_POR_NEGOCIO: Record<string, { nombre: string; email: string; cedula
         { nombre: 'Patricia León', email: 'patricia.leon@cliente.com', cedula: '1712348901', rol: Rol.CLIENTE },
         { nombre: 'Manuel Castro', email: 'manuel.castro@cliente.com', cedula: '1723459012', rol: Rol.CLIENTE },
         { nombre: 'Valeria Ortiz', email: 'valeria.ortiz@cliente.com', cedula: '1734560123', rol: Rol.CLIENTE },
+        // Cliente global que también compra en Abarrotes Don Pepe.
+        { nombre: 'Carmen Ruiz', email: 'carmen.ruiz@cliente.com', cedula: '1756789012', rol: Rol.CLIENTE },
     ],
     'tienda-tech-quito': [
         { nombre: 'Andrés Pacheco', email: 'andres.pacheco@techquito.com', cedula: '1745671234', rol: Rol.ADMINISTRADOR },
@@ -209,21 +211,42 @@ async function main() {
         const negocioId = negociosCreados[slug].id;
 
         for (const s of socios) {
+            const negocioIdSocio = s.rol === Rol.CLIENTE ? null : negocioId;
             const socio = await prisma.socio.upsert({
                 where: { email: s.email },
                 update: {
                     nombre: s.nombre,
                     cedula: s.cedula,
                     rol: s.rol,
-                    negocioId,
+                    negocioId: negocioIdSocio,
+                    cuentaActivada: true,
                 },
                 create: {
                     ...s,
-                    negocioId,
+                    negocioId: negocioIdSocio,
+                    cuentaActivada: true,
                     password: pwdDefault,
                 },
             });
-            sociosCreados[socio.email] = { id: socio.id, rol: socio.rol, negocioId: negocioId };
+
+            if (s.rol === Rol.CLIENTE) {
+                await prisma.clienteNegocio.upsert({
+                    where: { clienteId_negocioId: { clienteId: socio.id, negocioId } },
+                    update: {
+                        nombreReferencia: s.nombre,
+                        emailContacto: s.email,
+                        activo: true
+                    },
+                    create: {
+                        clienteId: socio.id,
+                        negocioId,
+                        nombreReferencia: s.nombre,
+                        emailContacto: s.email
+                    }
+                });
+            }
+
+            sociosCreados[`${slug}:${socio.email}`] = { id: socio.id, rol: socio.rol, negocioId };
         }
         console.log(`   ✅ ${socios.length} socios → ${slug}`);
     }
@@ -365,8 +388,11 @@ async function main() {
     console.log('───────────────────────────────────────────');
     console.log(`👑  SuperAdmin : ${superAdmin.email}`);
     console.log(`🏪  Negocios   : ${NEGOCIOS.length + 1} (incluye Sistema Central)`);
-    const totalSocios = Object.values(SOCIOS_POR_NEGOCIO).flat().length;
-    console.log(`👤  Socios     : ${totalSocios}`);
+    const sociosDemo = Object.values(SOCIOS_POR_NEGOCIO).flat();
+    const totalSocios = new Set(sociosDemo.map(socio => socio.email)).size;
+    const totalMembresias = sociosDemo.filter(socio => socio.rol === Rol.CLIENTE).length;
+    console.log(`👤  Socios únicos: ${totalSocios}`);
+    console.log(`🤝  Membresías cliente-negocio: ${totalMembresias}`);
     const totalProductos = Object.values(PRODUCTOS_POR_NEGOCIO).flat().length;
     console.log(`📦  Productos  : ${totalProductos}`);
     console.log(`🛒  Ventas     : 30 (15 por negocio activo)`);

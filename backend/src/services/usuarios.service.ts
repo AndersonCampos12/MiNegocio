@@ -7,7 +7,7 @@ export class UsuariosService {
         const cedula = String(data.cedula ?? '').trim();
         const email = String(data.email ?? '').trim().toLowerCase();
         const password = String(data.password ?? '');
-        const rolesValidos = ['ADMINISTRADOR', 'VENDEDOR', 'CAJERO', 'CLIENTE'];
+        const rolesValidos = ['ADMINISTRADOR', 'VENDEDOR', 'CAJERO'];
 
         if (nombre.length < 2 || nombre.length > 100) throw new Error('El nombre debe tener entre 2 y 100 caracteres.');
         if (!/^\d{10}$/.test(cedula)) throw new Error('La cédula debe contener exactamente 10 dígitos.');
@@ -43,12 +43,13 @@ export class UsuariosService {
 
         if (rolPeticion === 'SUPERADMIN') {
             return prisma.socio.findMany({
+                where: { rol: { not: 'CLIENTE' } },
                 select
             });
         }
 
         return prisma.socio.findMany({
-            where: { negocioId: negocioIdDelAdmin },
+            where: { negocioId: negocioIdDelAdmin, rol: { not: 'CLIENTE' } },
             select
         });
     }

@@ -43,7 +43,7 @@ export class Usuarios implements OnInit, OnDestroy {
     negocioId: '' // Solo lo usará el SUPERADMIN
   };
 
-  rolesDisponibles = ['ADMINISTRADOR', 'VENDEDOR', 'CAJERO', 'CLIENTE'];
+  rolesDisponibles = ['ADMINISTRADOR', 'VENDEDOR', 'CAJERO'];
 
   constructor(
     private toast: ToastService,

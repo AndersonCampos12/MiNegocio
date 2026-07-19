@@ -20,36 +20,68 @@ enum EstadoNegocio {
   BLOQUEADO
 }
 
+enum PropositoCodigo {
+  ACTIVACION
+  RECUPERACION
+}
+
 model Negocio {
-  id        String        @id @default(uuid())
+  id        String           @id @default(uuid())
   nombre    String
-  slug      String        @unique
-  plan      String        @default("MULTI")
-  estado    EstadoNegocio @default(PENDIENTE)
-  creadoEn  DateTime      @default(now()) @map("creado_en")
+  slug      String           @unique
+  plan      String           @default("MULTI")
+  estado    EstadoNegocio    @default(PENDIENTE)
+  creadoEn  DateTime         @default(now()) @map("creado_en")
   socios    Socio[]
-  productos Producto[]    // ← Productos pertenecen al Negocio
-  ventas    Venta[]       // ← Ventas pertenecen al Negocio
+  productos Producto[] // ← Productos pertenecen al Negocio
+  ventas    Venta[] // ← Ventas pertenecen al Negocio
+  clientes  ClienteNegocio[]
+
   @@map("negocios")
 }
 
 model Socio {
-  id        String    @id @default(uuid())
-  negocioId String?
-  negocio   Negocio?  @relation(fields: [negocioId], references: [id])
-  nombre    String
-  cedula     String?   @unique // <- Añadir para el RUC/Cédula
-  email     String    @unique
-  password  String
-  rol       Rol       @default(CLIENTE)
-  ventasRealizadas Venta[] @relation("VendedorFactura")
-  compras          Venta[] @relation("ClienteFactura")
+  id                  String           @id @default(uuid())
+  negocioId           String?
+  negocio             Negocio?         @relation(fields: [negocioId], references: [id])
+  nombre              String
+  cedula              String?          @unique // <- Añadir para el RUC/Cédula
+  email               String           @unique
+  password            String
+  cuentaActivada      Boolean          @default(true) @map("cuenta_activada")
+  codigoVerificacionHash String?        @map("codigo_verificacion_hash")
+  codigoVerificacionExpira DateTime?    @map("codigo_verificacion_expira")
+  codigoVerificacionEnviadoEn DateTime? @map("codigo_verificacion_enviado_en")
+  intentosVerificacion Int              @default(0) @map("intentos_verificacion")
+  propositoCodigo       PropositoCodigo? @map("proposito_codigo")
+  rol                 Rol              @default(CLIENTE)
+  ventasRealizadas    Venta[]          @relation("VendedorFactura")
+  compras             Venta[]          @relation("ClienteFactura")
+  negociosComoCliente ClienteNegocio[]
+
   @@map("socios")
+}
+
+model ClienteNegocio {
+  id               String   @id @default(uuid())
+  clienteId        String   @map("cliente_id")
+  negocioId        String   @map("negocio_id")
+  nombreReferencia String?  @map("nombre_referencia")
+  emailContacto    String?  @map("email_contacto")
+  activo           Boolean  @default(true)
+  creadoEn         DateTime @default(now()) @map("creado_en")
+
+  cliente Socio   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  negocio Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+
+  @@unique([clienteId, negocioId])
+  @@index([negocioId])
+  @@map("clientes_negocios")
 }
 
 model Producto {
   id          String         @id @default(uuid())
-  negocioId   String         @map("negocio_id")  // ← CAMBIADO
+  negocioId   String         @map("negocio_id") // ← CAMBIADO
   negocio     Negocio        @relation(fields: [negocioId], references: [id])
   nombre      String
   valor       Decimal
@@ -61,31 +93,32 @@ model Producto {
   creadoEn    DateTime       @default(now()) @map("creado_en")
   detalles    DetalleVenta[]
   alertas     Alerta[]
+
   @@map("productos")
 }
 
 model Venta {
-  id         String         @id @default(uuid())
-  negocioId  String         @map("negocio_id")
-  negocio    Negocio        @relation(fields: [negocioId], references: [id])
-  
-  // VENDEDOR / CAJERO
-  socioId    String         @map("socio_id")
-  socio      Socio          @relation("VendedorFactura", fields: [socioId], references: [id])
-  
-  // CLIENTE
-  clienteId  String?        @map("cliente_id")
-  cliente    Socio?         @relation("ClienteFactura", fields: [clienteId], references: [id])
+  id        String  @id @default(uuid())
+  negocioId String  @map("negocio_id")
+  negocio   Negocio @relation(fields: [negocioId], references: [id])
 
-  subtotal   Decimal        @default(0)
-  impuestos  Decimal        @default(0)
-  total      Decimal
-  
+  // VENDEDOR / CAJERO
+  socioId String @map("socio_id")
+  socio   Socio  @relation("VendedorFactura", fields: [socioId], references: [id])
+
+  // CLIENTE
+  clienteId String? @map("cliente_id")
+  cliente   Socio?  @relation("ClienteFactura", fields: [clienteId], references: [id])
+
+  subtotal  Decimal @default(0)
+  impuestos Decimal @default(0)
+  total     Decimal
+
   // 💻 NUEVO CAMPO: Para almacenar el método de pago seleccionado en la caja
-  metodoPago String         @default("EFECTIVO") @map("metodo_pago")
-  
-  creadoEn   DateTime       @default(now()) @map("creado_en")
-  detalles   DetalleVenta[]
+  metodoPago String @default("EFECTIVO") @map("metodo_pago")
+
+  creadoEn DateTime       @default(now()) @map("creado_en")
+  detalles DetalleVenta[]
 
   @@map("ventas")
 }
@@ -98,6 +131,7 @@ model DetalleVenta {
   precioUnit Decimal  @map("precio_unit")
   venta      Venta    @relation(fields: [ventaId], references: [id])
   producto   Producto @relation(fields: [productoId], references: [id])
+
   @@map("detalle_ventas")
 }
 
@@ -107,11 +141,13 @@ model Alerta {
   mensaje    String
   creadoEn   DateTime @default(now()) @map("creado_en")
   producto   Producto @relation(fields: [productoId], references: [id])
+
   @@map("alertas")
 }
 
 model SesionCaja {
-  id        String   @id @default(uuid())
-  creadoEn  DateTime @default(now()) @map("creado_en")
+  id       String   @id @default(uuid())
+  creadoEn DateTime @default(now()) @map("creado_en")
+
   @@map("sesiones_caja")
 }

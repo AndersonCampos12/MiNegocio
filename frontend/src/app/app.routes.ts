@@ -24,13 +24,22 @@ export const routes: Routes = [
     { path: 'welcome', component: Welcome, canActivate: [guestGuard] },
     { path: 'admin/login', component: Login, canActivate: [guestGuard] },
     { path: 'admin/registro', component: Registro, canActivate: [guestGuard] },
+    { path: 'login', component: Login, canActivate: [guestGuard] },
+    { path: 'registro', component: Registro, canActivate: [guestGuard] },
+    { path: 'tienda/:slug/login', component: Login, canActivate: [guestGuard] },
+    { path: 'tienda/:slug/registro', component: Registro, canActivate: [guestGuard] },
 
     // =========================
     // E-COMMERCE / TIENDA
     // =========================
     // ERROR CORREGIDO: Se quita el guestGuard. 
     // Puedes dejarla pública (sin guards) o ponerle [authGuard] si solo clientes registrados pueden comprar.
-    { path: 'tienda', component: Tienda, canActivate: [authGuard] },
+    { path: 'tienda', component: Tienda },
+    {
+        path: 'perfil',
+        loadComponent: () => import('./components/perfil/perfil').then(m => m.Perfil),
+        canActivate: [authGuard]
+    },
 
     // =========================
     // PORTAL ADMINISTRATIVO PROTEGIDO (Nadie con rol CLIENTE entra aquí)
@@ -48,6 +57,12 @@ export const routes: Routes = [
             { path: 'reportes', component: Reportes },
             { path: 'negocios', component: Negocios },
             {
+                path: 'clientes',
+                loadComponent: () => import('./components/clientes/clientes').then(m => m.Clientes),
+                canActivate: [roleGuard],
+                data: { roles: ['ADMINISTRADOR'] }
+            },
+            {
                 path: 'usuarios',
                 loadComponent: () => import('./components/usuarios/usuarios').then(m => m.Usuarios),
                 // roleGuard extra para sobre-proteger esta ruta hija
@@ -57,7 +72,12 @@ export const routes: Routes = [
     },
 
     // Otras rutas protegidas que no son exclusivas de admin
-    { path: 'verificacion', component: Verificacion, canActivate: [authGuard] },
+    { path: 'verificacion', component: Verificacion, canActivate: [guestGuard] },
+    {
+        path: 'recuperar-password',
+        loadComponent: () => import('./components/recuperar-password/recuperar-password').then(m => m.RecuperarPassword),
+        canActivate: [guestGuard]
+    },
 
     { path: '**', redirectTo: '' }
 ];

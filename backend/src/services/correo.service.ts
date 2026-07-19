@@ -9,6 +9,7 @@ interface DatosCorreo {
     destinatario: string;
     asunto: string;
     html: string;
+    tipo: 'FACTURA' | 'AUTENTICACION';
     adjuntos?: AdjuntoCorreo[];
 }
 
@@ -24,10 +25,13 @@ export class CorreoService {
     }
 
     async enviar(datos: DatosCorreo): Promise<string> {
-        const remitente = process.env.EMAIL_FROM;
+        const variableRemitente = datos.tipo === 'FACTURA'
+            ? 'EMAIL_FROM_FACTURAS'
+            : 'EMAIL_FROM_AUTH';
+        const remitente = process.env[variableRemitente];
 
         if (!remitente) {
-            throw new Error('Falta configurar EMAIL_FROM');
+            throw new Error(`Falta configurar ${variableRemitente}`);
         }
 
         const { data, error } = await this.obtenerCliente().emails.send({

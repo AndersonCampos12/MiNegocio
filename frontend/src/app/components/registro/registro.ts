@@ -13,6 +13,7 @@ import { CommonModule } from '@angular/common';
 })
 export class Registro implements OnInit {
   nombre = '';
+  cedula = '';
   email = '';
   password = '';
   aceptaTerminos = false;
@@ -37,13 +38,18 @@ export class Registro implements OnInit {
   ejecutarRegistro() {
     this.errorMsg = '';
 
-    if (!this.nombre || !this.email || !this.password) {
+    if (!this.nombre || !this.cedula || !this.email || !this.password) {
       this.mostrarError('Por favor, completa todos los campos.');
       return;
     }
 
-    if (this.password.length < 6) {
-      this.mostrarError('La contraseña debe tener al menos 6 caracteres.');
+    if (!/^\d{10}(\d{3})?$/.test(this.cedula.trim())) {
+      this.mostrarError('Ingresa una cédula de 10 dígitos o un RUC de 13 dígitos.');
+      return;
+    }
+
+    if (this.password.length < 8) {
+      this.mostrarError('La contraseña debe tener al menos 8 caracteres.');
       return;
     }
 
@@ -57,6 +63,7 @@ export class Registro implements OnInit {
     // Payload limpio, sin datos de empresas. El backend hará el resto gracias al slug.
     const datosPayload = {
       nombre: this.nombre,
+      cedula: this.cedula.trim(),
       email: this.email,
       password: this.password,
       slug: this.slugTienda
@@ -68,8 +75,9 @@ export class Registro implements OnInit {
       next: (respuesta: any) => {
         this.ngZone.run(() => {
           this.cargando = false;
-          // Redirigimos al cliente directo al login de esa tienda
-          this.router.navigate(['/tienda', this.slugTienda, 'login']);
+          this.router.navigate(['/verificacion'], {
+            queryParams: { email: this.email.trim().toLowerCase(), slug: this.slugTienda }
+          });
         });
       },
       // ¡SOLUCIÓN!: Le decimos a TypeScript que esto es (err: any)

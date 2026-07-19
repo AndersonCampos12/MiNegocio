@@ -14,3 +14,9 @@ export class StockInsuficienteError extends AppError {
         super(`Transacción rechazada: Stock insuficiente para el producto [${productoNombre}]`, 409);
     }
 }
+
+export class CuentaNoActivadaError extends AppError {
+    constructor() {
+        super('Tu cuenta requiere verificación antes de ingresar.', 403);
+    }
+}

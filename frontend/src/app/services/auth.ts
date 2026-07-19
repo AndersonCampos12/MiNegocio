@@ -21,6 +21,43 @@ export class AuthService {
         return this.http.post(`${this.apiUrl}/admin/registro`, datos);
     }
 
+    verificarCuenta(email: string, codigo: string) {
+        return this.http.post(`${this.apiUrl}/verificar`, { email, codigo });
+    }
+
+    reenviarCodigo(email: string) {
+        return this.http.post(`${this.apiUrl}/reenviar-codigo`, { email });
+    }
+
+    solicitarRecuperacion(email: string) {
+        return this.http.post(`${this.apiUrl}/solicitar-recuperacion`, { email });
+    }
+
+    restablecerPassword(email: string, codigo: string, password: string) {
+        return this.http.post(`${this.apiUrl}/restablecer-password`, { email, codigo, password });
+    }
+
+    obtenerPerfil() {
+        return this.http.get(`${this.apiUrl}/perfil`);
+    }
+
+    actualizarPerfil(datos: { nombre: string; cedula: string; email: string }) {
+        return this.http.put(`${this.apiUrl}/perfil`, datos).pipe(
+            tap((respuesta: any) => this.actualizarUsuarioLocal(respuesta.perfil))
+        );
+    }
+
+    cambiarPassword(passwordActual: string, passwordNueva: string) {
+        return this.http.put(`${this.apiUrl}/cambiar-password`, { passwordActual, passwordNueva });
+    }
+
+    actualizarUsuarioLocal(perfil: any) {
+        const actual = this.getSocioActual() || {};
+        const usuario = { ...actual, ...perfil };
+        localStorage.setItem('usuario', JSON.stringify(usuario));
+        this.usuarioSubject.next(usuario);
+    }
+
     crearEmpresaAdmin(datos: any) {
         return this.http.post(`${this.apiUrl}/admin/crear-empresa`, datos);
     }

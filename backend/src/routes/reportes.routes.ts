@@ -10,6 +10,29 @@ const reportesService = new ReportesService();
 const pdfService = new PdfService();
 const correoService = new CorreoService();
 
+const aplicarContactoDelNegocio = async (venta: any) => {
+    if (!venta?.clienteId || !venta?.negocioId || !venta.cliente) return venta;
+
+    const relacion = await prisma.clienteNegocio.findUnique({
+        where: {
+            clienteId_negocioId: {
+                clienteId: venta.clienteId,
+                negocioId: venta.negocioId
+            }
+        },
+        select: { nombreReferencia: true, emailContacto: true }
+    });
+
+    return {
+        ...venta,
+        cliente: {
+            ...venta.cliente,
+            nombre: relacion?.nombreReferencia || venta.cliente.nombre,
+            email: relacion?.emailContacto || venta.cliente.email
+        }
+    };
+};
+
 router.get('/', async (req, res) => {
     try {
         const socioId = req.query.socioId as string;
@@ -44,7 +67,7 @@ router.get('/factura/:id', async (req, res) => {
     try {
         const { id } = req.params;
 
-        const venta = await prisma.venta.findUnique({
+        const ventaEncontrada = await prisma.venta.findUnique({
             where: { id },
             include: {
                 cliente: true,
@@ -55,9 +78,10 @@ router.get('/factura/:id', async (req, res) => {
             }
         });
 
-        if (!venta) {
+        if (!ventaEncontrada) {
             return res.status(404).send('Factura no encontrada');
         }
+        const venta = await aplicarContactoDelNegocio(ventaEncontrada);
 
         const autoImprimir = req.query.autoImprimir !== 'false';
         const estiloModerno = req.query.estilo === 'moderno';
@@ -74,7 +98,7 @@ router.get('/factura/:id/pdf', async (req, res) => {
     try {
         const { id } = req.params;
 
-        const venta = await prisma.venta.findUnique({
+        const ventaEncontrada = await prisma.venta.findUnique({
             where: { id },
             include: {
                 cliente: true,
@@ -85,9 +109,10 @@ router.get('/factura/:id/pdf', async (req, res) => {
             }
         });
 
-        if (!venta) {
+        if (!ventaEncontrada) {
             return res.status(404).send('Factura no encontrada');
         }
+        const venta = await aplicarContactoDelNegocio(ventaEncontrada);
 
         const estiloModerno = req.query.estilo === 'moderno';
         const htmlFactura = generarHtmlFactura(venta, {
@@ -113,7 +138,7 @@ router.post('/factura/:id/enviar', async (req, res) => {
     try {
         const { id } = req.params;
 
-        const venta = await prisma.venta.findUnique({
+        const ventaEncontrada = await prisma.venta.findUnique({
             where: { id },
             include: {
                 cliente: true,
@@ -124,9 +149,10 @@ router.post('/factura/:id/enviar', async (req, res) => {
             }
         });
 
-        if (!venta) {
+        if (!ventaEncontrada) {
             return res.status(404).json({ mensaje: 'Factura no encontrada' });
         }
+        const venta = await aplicarContactoDelNegocio(ventaEncontrada);
 
         if (!venta.cliente?.email) {
             return res.status(400).json({
@@ -143,6 +169,7 @@ router.post('/factura/:id/enviar', async (req, res) => {
         const idCorreo = await correoService.enviar({
             destinatario: venta.cliente.email,
             asunto: `Factura #${numeroFactura}`,
+            tipo: 'FACTURA',
             html: `
                 <div style="font-family: Arial, sans-serif; color: #334155; line-height: 1.6; max-width: 560px; margin: 0 auto;">
                     <h2 style="color: #0f172a; margin-bottom: 8px;">Gracias por tu compra</h2>

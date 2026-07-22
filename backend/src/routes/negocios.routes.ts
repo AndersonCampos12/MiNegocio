@@ -45,7 +45,8 @@ router.post('/crear-empresa', verificarToken, verificarRol(['SUPERADMIN']), asyn
         });
     } catch (error: any) {
         if (error.code === 'P2002') {
-            const campo = error.meta?.target?.includes('cedula') ? 'cédula' : error.meta?.target?.includes('email') ? 'correo electrónico' : 'slug';
+            const restriccion = (Array.isArray(error.meta?.target) ? error.meta.target.join(' ') : String(error.meta?.target ?? '')).toLowerCase();
+            const campo = restriccion.includes('cedula') ? 'cédula' : restriccion.includes('email') ? 'correo electrónico' : restriccion.includes('slug') ? 'slug' : 'dato ingresado';
             res.status(400).json({ mensaje: `El ${campo} ya está en uso.` });
             return;
         }

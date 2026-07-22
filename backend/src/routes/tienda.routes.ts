@@ -1,14 +1,16 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import { TiendaService } from '../services/tienda.service';
+import { AuthRequest, verificarTokenOpcional } from '../middlewares/auth.middleware';
 
 const router = Router();
 const tiendaService = new TiendaService();
 
 // GET /api/tienda/productos - PÚBLICO (sin autenticación)
-router.get('/productos', async (req: Request, res: Response) => {
+router.get('/productos', verificarTokenOpcional, async (req: AuthRequest, res: Response) => {
     try {
         const slug = req.query.negocio as string | undefined;
-        const productos = await tiendaService.obtenerProductosTienda(slug);
+        const clienteId = req.socio?.rol === 'CLIENTE' ? req.socio.id as string : undefined;
+        const productos = await tiendaService.obtenerProductosTienda(slug, clienteId);
         res.json(productos);
     } catch (error) {
         console.error('Error en GET /api/tienda/productos:', error);
@@ -17,9 +19,10 @@ router.get('/productos', async (req: Request, res: Response) => {
 });
 
 // GET /api/tienda/negocios - Lista de negocios activos para el filtro
-router.get('/negocios', async (req: Request, res: Response) => {
+router.get('/negocios', verificarTokenOpcional, async (req: AuthRequest, res: Response) => {
     try {
-        const negocios = await tiendaService.obtenerNegociosActivos();
+        const clienteId = req.socio?.rol === 'CLIENTE' ? req.socio.id as string : undefined;
+        const negocios = await tiendaService.obtenerNegociosActivos(clienteId);
         res.json(negocios);
     } catch (error) {
         console.error('Error en GET /api/tienda/negocios:', error);

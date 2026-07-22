@@ -128,7 +128,12 @@ export class Tienda implements OnInit, OnDestroy {
     if (!socket) return;
 
     this.socketSub = (producto: any) => {
-      if (!this.negocioSeleccionado || producto.negocio?.slug === this.negocioSeleccionado) {
+      const negocioPermitido = this.usuarioActual?.rol !== 'CLIENTE'
+        || this.negocios.some(negocio => negocio.id === producto.negocio?.id);
+      const coincideFiltro = !this.negocioSeleccionado
+        || producto.negocio?.slug === this.negocioSeleccionado;
+
+      if (negocioPermitido && coincideFiltro) {
         this.productos.unshift(producto);
         this.ultimosProductos.unshift(producto);
         if (this.ultimosProductos.length > 5) this.ultimosProductos.pop();

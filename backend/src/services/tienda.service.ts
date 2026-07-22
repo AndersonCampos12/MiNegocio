@@ -13,7 +13,7 @@ export class TiendaService {
         return `/api/productos/ver-imagen/${filename}?firma=${firma}`;
     }
 
-    async obtenerProductosTienda(slug?: string) {
+    async obtenerProductosTienda(slug?: string, clienteId?: string) {
         const where: any = {
             activo: true,
             negocio: {
@@ -23,6 +23,11 @@ export class TiendaService {
 
         if (slug) {
             where.negocio.slug = slug;
+        }
+        if (clienteId) {
+            where.negocio.clientes = {
+                some: { clienteId, activo: true }
+            };
         }
 
         // 1. Guardamos el resultado en una variable
@@ -47,9 +52,12 @@ export class TiendaService {
         }));
     }
 
-    async obtenerNegociosActivos() {
+    async obtenerNegociosActivos(clienteId?: string) {
         return prisma.negocio.findMany({
-            where: { estado: 'ACTIVO' },
+            where: {
+                estado: 'ACTIVO',
+                ...(clienteId ? { clientes: { some: { clienteId, activo: true } } } : {})
+            },
             select: {
                 id: true,
                 nombre: true,

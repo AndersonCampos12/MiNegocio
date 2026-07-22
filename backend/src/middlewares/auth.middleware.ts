@@ -23,6 +23,21 @@ export const verificarToken = (req: AuthRequest, res: Response, next: NextFuncti
     }
 };
 
+export const verificarTokenOpcional = (req: AuthRequest, res: Response, next: NextFunction): void => {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) {
+        next();
+        return;
+    }
+
+    try {
+        req.socio = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
+        next();
+    } catch (error) {
+        res.status(401).json({ mensaje: 'Token inválido o expirado' });
+    }
+};
+
 // NUEVO: Middleware para proteger rutas por Roles
 export const verificarRol = (rolesPermitidos: string[]) => {
     return (req: AuthRequest, res: Response, next: NextFunction): void => {

@@ -35,7 +35,8 @@ export const crearClienteCtrl = async (req: AuthRequest, res: Response) => {
             mensaje: resultado.identidadCreada
                 ? 'Cliente registrado correctamente.'
                 : 'Cliente agregado correctamente a este negocio.',
-            cliente: resultado.cliente
+            cliente: resultado.cliente,
+            passwordActualizada: resultado.passwordActualizada
         });
     } catch (error: any) {
         if (error instanceof AppError) {
@@ -63,8 +64,11 @@ export const actualizarClienteCtrl = async (req: AuthRequest, res: Response) => 
     try {
         const negocioId = obtenerNegocioId(req);
         if (!negocioId) return res.status(400).json({ mensaje: 'No se pudo determinar la empresa actual.' });
-        await clientesService.actualizarContacto(String(req.params.id), req.body, negocioId);
-        return res.json({ mensaje: 'Datos de contacto actualizados correctamente.' });
+        const resultado = await clientesService.actualizarContacto(String(req.params.id), req.body, negocioId);
+        return res.json({
+            mensaje: 'Cliente actualizado correctamente.',
+            passwordActualizada: resultado.passwordActualizada
+        });
     } catch (error: any) {
         if (error instanceof AppError) return res.status(error.statusCode).json({ mensaje: error.message });
         return res.status(500).json({ mensaje: 'No fue posible actualizar el cliente.' });

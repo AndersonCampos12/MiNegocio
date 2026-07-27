@@ -8,12 +8,27 @@ import { z } from 'zod';
 const clienteSchema = z.object({
     nombre: z.string().trim().min(2, 'El nombre debe tener al menos 2 caracteres.').max(100),
     email: z.string().trim().toLowerCase().email('Ingresa un correo electrónico válido.').max(254),
-    cedula: z.string().trim().regex(/^\d{10}(\d{3})?$/, 'La cédula debe tener 10 dígitos y el RUC 13 dígitos.')
+    cedula: z.string().trim().regex(/^\d{10}(\d{3})?$/, 'La cédula debe tener 10 dígitos y el RUC 13 dígitos.'),
+    cuentaActivada: z.boolean().default(true),
+    password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres.').optional()
+}).superRefine((datos, contexto) => {
+    if (datos.cuentaActivada && !datos.password) {
+        contexto.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['password'],
+            message: 'La contraseña es obligatoria para habilitar la cuenta.'
+        });
+    }
 });
 
 const contactoSchema = z.object({
     nombre: z.string().trim().min(2, 'El nombre debe tener al menos 2 caracteres.').max(100),
-    email: z.string().trim().toLowerCase().email('Ingresa un correo electrónico válido.').max(254)
+    email: z.string().trim().toLowerCase().email('Ingresa un correo electrónico válido.').max(254),
+    cuentaActivada: z.boolean(),
+    password: z.union([
+        z.string().min(8, 'La contraseña debe tener al menos 8 caracteres.'),
+        z.literal('')
+    ]).optional()
 });
 
 export class ClientesService {
@@ -133,25 +148,40 @@ export class ClientesService {
 
                 let cliente = porCedula || porEmail;
                 let identidadCreada = false;
+                let passwordActualizada = false;
 
                 if (cliente && cliente.rol !== 'CLIENTE') {
                     throw new AppError('La identificación pertenece a un usuario interno del sistema.', 409);
                 }
 
                 if (!cliente) {
-                    const passwordNoUtilizable = await bcrypt.hash(randomBytes(32).toString('hex'), 10);
+                    const password = datos.cuentaActivada && datos.password
+                        ? datos.password
+                        : randomBytes(32).toString('hex');
                     cliente = await tx.socio.create({
                         data: {
                             nombre: datos.nombre,
                             email: datos.email,
                             cedula: datos.cedula,
-                            password: passwordNoUtilizable,
-                            cuentaActivada: false,
+                            password: await bcrypt.hash(password, 10),
+                            cuentaActivada: datos.cuentaActivada,
                             rol: 'CLIENTE',
                             negocioId: null
                         }
                     });
                     identidadCreada = true;
+                    passwordActualizada = datos.cuentaActivada;
+                } else if (cliente.cuentaActivada !== datos.cuentaActivada) {
+                    cliente = await tx.socio.update({
+                        where: { id: cliente.id },
+                        data: {
+                            cuentaActivada: datos.cuentaActivada,
+                            ...(!cliente.cuentaActivada && datos.password
+                                ? { password: await bcrypt.hash(datos.password, 10) }
+                                : {})
+                        }
+                    });
+                    passwordActualizada = datos.cuentaActivada;
                 }
 
                 const membresia = await tx.clienteNegocio.upsert({
@@ -182,7 +212,8 @@ export class ClientesService {
                         email: datos.email
                     },
                     membresiaCreada: membresia.creadoEn,
-                    identidadCreada
+                    identidadCreada,
+                    passwordActualizada
                 };
             });
         } catch (error) {
@@ -205,17 +236,36 @@ export class ClientesService {
 
         const membresia = await prisma.clienteNegocio.findFirst({
             where: { id: membresiaId, negocioId },
-            select: { id: true }
-        });
-        if (!membresia) throw new AppError('El cliente no pertenece a este negocio.', 404);
-
-        return prisma.clienteNegocio.update({
-            where: { id: membresia.id },
-            data: {
-                nombreReferencia: validacion.data.nombre,
-                emailContacto: validacion.data.email
+            select: {
+                id: true,
+                cliente: { select: { id: true, cuentaActivada: true } }
             }
         });
+        if (!membresia) throw new AppError('El cliente no pertenece a este negocio.', 404);
+        if (validacion.data.cuentaActivada && !membresia.cliente.cuentaActivada && !validacion.data.password) {
+            throw new AppError('Genera o ingresa una contraseña para habilitar la cuenta.', 422);
+        }
+
+        await prisma.$transaction(async (tx) => {
+            await tx.socio.update({
+                where: { id: membresia.cliente.id },
+                data: {
+                    cuentaActivada: validacion.data.cuentaActivada,
+                    ...(validacion.data.password
+                        ? { password: await bcrypt.hash(validacion.data.password, 10) }
+                        : {})
+                }
+            });
+
+            return tx.clienteNegocio.update({
+                where: { id: membresia.id },
+                data: {
+                    nombreReferencia: validacion.data.nombre,
+                    emailContacto: validacion.data.email
+                }
+            });
+        });
+        return { passwordActualizada: Boolean(validacion.data.password) };
     }
 
     async cambiarEstado(membresiaId: string, activo: boolean, negocioId: string) {

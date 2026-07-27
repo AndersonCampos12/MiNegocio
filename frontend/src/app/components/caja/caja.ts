@@ -54,7 +54,9 @@ export class Caja implements OnInit, OnDestroy {
   clienteForm = new FormGroup({
     cedula: new FormControl('', [Validators.required, Validators.pattern(/^\d{10}(\d{3})?$/)]),
     nombre: new FormControl('', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]),
-    email: new FormControl('', [Validators.required, Validators.email, Validators.maxLength(254)])
+    email: new FormControl('', [Validators.required, Validators.email, Validators.maxLength(254)]),
+    cuentaActivada: new FormControl(true, { nonNullable: true }),
+    password: new FormControl('')
   });
   guardandoCliente = false;
 
@@ -103,6 +105,15 @@ export class Caja implements OnInit, OnDestroy {
         control.setErrors(Object.keys(otrosErrores).length ? otrosErrores : null, { emitEvent: false });
       }));
     });
+
+    this.subs.add(this.clienteForm.controls.password.valueChanges.subscribe(() => {
+      if (!this.clienteForm.controls.password.hasError('passwordInvalida')) return;
+      const { passwordInvalida, ...otrosErrores } = this.clienteForm.controls.password.errors ?? {};
+      this.clienteForm.controls.password.setErrors(
+        Object.keys(otrosErrores).length ? otrosErrores : null,
+        { emitEvent: false }
+      );
+    }));
   }
 
   cargarDatosUsuario() {
@@ -184,7 +195,13 @@ export class Caja implements OnInit, OnDestroy {
 
   abrirModalCliente() {
     this.mostrarModalCliente = true;
-    this.clienteForm.reset();
+    this.clienteForm.reset({
+      cedula: '',
+      nombre: '',
+      email: '',
+      cuentaActivada: true,
+      password: this.crearPassword()
+    });
   }
 
   guardarNuevoCliente() {
@@ -194,13 +211,23 @@ export class Caja implements OnInit, OnDestroy {
       this.clienteForm.markAllAsTouched();
       return;
     }
+    if (this.clienteForm.controls.cuentaActivada.value && (this.clienteForm.controls.password.value?.length || 0) < 8) {
+      this.clienteForm.controls.password.setErrors({ passwordInvalida: true });
+      this.clienteForm.controls.password.markAsTouched();
+      return;
+    }
 
+    const cuentaActivada = this.clienteForm.controls.cuentaActivada.value;
+    const password = this.clienteForm.controls.password.value || '';
     const nuevoCliente = {
       ...this.clienteForm.value,
       nombre: this.clienteForm.controls.nombre.value?.trim(),
       email: this.clienteForm.controls.email.value?.trim().toLowerCase(),
-      cedula: this.clienteForm.controls.cedula.value?.trim()
+      cedula: this.clienteForm.controls.cedula.value?.trim(),
+      cuentaActivada,
+      ...(cuentaActivada ? { password } : { password: undefined })
     };
+    const passwordAsignada = cuentaActivada ? password : '';
 
     this.guardandoCliente = true;
     this.cdr.detectChanges();
@@ -214,7 +241,10 @@ export class Caja implements OnInit, OnDestroy {
       next: (resultado: any) => {
         this.seleccionarCliente(resultado.cliente);
         this.mostrarModalCliente = false;
-        this.toast.success(resultado.mensaje || 'Cliente agregado correctamente');
+        const mensaje = resultado.mensaje || 'Cliente agregado correctamente';
+        this.toast.success(passwordAsignada && resultado.passwordActualizada
+          ? `${mensaje} Contraseña asignada: ${passwordAsignada}`
+          : mensaje);
       },
       error: (err: any) => {
         const mensaje = obtenerMensajeHttp(err, 'No fue posible registrar el cliente.');
@@ -224,6 +254,16 @@ export class Caja implements OnInit, OnDestroy {
         this.cdr.detectChanges();
       }
     });
+  }
+
+  generarPasswordCliente() {
+    this.clienteForm.controls.password.setValue(this.crearPassword());
+  }
+
+  private crearPassword(): string {
+    const caracteres = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+    const valores = crypto.getRandomValues(new Uint32Array(12));
+    return Array.from(valores, valor => caracteres[valor % caracteres.length]).join('');
   }
 
   agregarAlCarrito(prod: any) {

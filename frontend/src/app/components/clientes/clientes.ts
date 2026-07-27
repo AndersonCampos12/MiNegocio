@@ -103,7 +103,14 @@ export class Clientes implements OnInit {
   abrirModal(cliente?: any) {
     this.clienteEditando = cliente || null;
     this.formulario = cliente
-      ? { nombre: cliente.nombre, cedula: cliente.cedula || '', email: cliente.email, negocioId: cliente.negocioId }
+      ? {
+          nombre: cliente.nombre,
+          cedula: cliente.cedula || '',
+          email: cliente.email,
+          negocioId: cliente.negocioId,
+          cuentaActivada: Boolean(cliente.cuentaActivada),
+          password: ''
+        }
       : this.formularioVacio();
     this.mostrarModal = true;
   }
@@ -119,6 +126,8 @@ export class Clientes implements OnInit {
     const nombre = this.formulario.nombre.trim();
     const cedula = this.formulario.cedula.trim();
     const email = this.formulario.email.trim().toLowerCase();
+    const password = this.formulario.password;
+    const cuentaActivada = this.formulario.cuentaActivada;
     const negocioId = this.esSuperadmin
       ? (this.clienteEditando?.negocioId || this.formulario.negocioId)
       : undefined;
@@ -127,11 +136,21 @@ export class Clientes implements OnInit {
     if (!this.clienteEditando && !/^\d{10}(\d{3})?$/.test(cedula)) return this.toast.warning('Ingresa una cédula de 10 dígitos o un RUC de 13 dígitos.');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return this.toast.warning('Ingresa un correo electrónico válido.');
     if (this.esSuperadmin && !negocioId) return this.toast.warning('Selecciona el negocio al que pertenecerá el cliente.');
+    if (cuentaActivada && (!this.clienteEditando || !this.clienteEditando.cuentaActivada) && password.length < 8) {
+      return this.toast.warning('La contraseña debe tener al menos 8 caracteres para habilitar la cuenta.');
+    }
+    if (cuentaActivada && password && password.length < 8) return this.toast.warning('La contraseña debe tener al menos 8 caracteres.');
 
+    const estabaEditando = Boolean(this.clienteEditando);
+    const passwordAsignada = cuentaActivada && password ? password : '';
     this.guardando = true;
     const peticion = this.clienteEditando
-      ? this.clientesService.actualizarCliente(this.clienteEditando.membresiaId, { nombre, email }, negocioId)
-      : this.clientesService.crearCliente({ nombre, cedula, email }, negocioId);
+      ? this.clientesService.actualizarCliente(
+          this.clienteEditando.membresiaId,
+          { nombre, email, cuentaActivada, ...(cuentaActivada && password ? { password } : {}) },
+          negocioId
+        )
+      : this.clientesService.crearCliente({ nombre, cedula, email, cuentaActivada, ...(cuentaActivada && password ? { password } : {}) }, negocioId);
 
     peticion.pipe(finalize(() => {
       this.guardando = false;
@@ -140,7 +159,10 @@ export class Clientes implements OnInit {
       next: (resultado: any) => {
         this.cerrarModal();
         this.cargarClientes();
-        this.toast.success(resultado.mensaje || (this.clienteEditando ? 'Cliente actualizado correctamente.' : 'Cliente registrado correctamente.'));
+        const mensaje = resultado.mensaje || (estabaEditando ? 'Cliente actualizado correctamente.' : 'Cliente registrado correctamente.');
+        this.toast.success(passwordAsignada && resultado.passwordActualizada
+          ? `${mensaje} Contraseña asignada: ${passwordAsignada}`
+          : mensaje);
       },
       error: err => this.toast.error(obtenerMensajeHttp(err, 'No fue posible guardar el cliente.'))
     });
@@ -177,6 +199,23 @@ export class Clientes implements OnInit {
   }
 
   private formularioVacio() {
-    return { nombre: '', cedula: '', email: '', negocioId: this.negocioSeleccionado || '' };
+    return {
+      nombre: '',
+      cedula: '',
+      email: '',
+      negocioId: this.negocioSeleccionado || '',
+      cuentaActivada: true,
+      password: this.crearPassword()
+    };
+  }
+
+  generarPassword() {
+    this.formulario.password = this.crearPassword();
+  }
+
+  private crearPassword(): string {
+    const caracteres = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+    const valores = crypto.getRandomValues(new Uint32Array(12));
+    return Array.from(valores, valor => caracteres[valor % caracteres.length]).join('');
   }
 }

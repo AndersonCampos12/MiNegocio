@@ -27,7 +27,7 @@ export class ClientesService {
         return this.http.get<any[]>(this.apiUrl, { params });
     }
 
-    actualizarCliente(membresiaId: string, datos: { nombre: string; email: string }, negocioId?: string) {
+    actualizarCliente(membresiaId: string, datos: { nombre: string; email: string; cuentaActivada: boolean; password?: string }, negocioId?: string) {
         let params = new HttpParams();
         if (negocioId) params = params.set('negocioId', negocioId);
         return this.http.put(`${this.apiUrl}/${membresiaId}`, datos, { params });

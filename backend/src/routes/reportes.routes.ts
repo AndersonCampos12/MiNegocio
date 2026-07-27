@@ -5,6 +5,7 @@ import { generarHtmlFactura } from '../templates/factura.template';
 import { PdfService } from '../services/pdf.service';
 import { CorreoService } from '../services/correo.service';
 import { obtenerRespuestaError } from '../errors/app.error';
+import { AuthRequest, verificarRol, verificarToken } from '../middlewares/auth.middleware';
 
 const router = Router();
 const reportesService = new ReportesService();
@@ -34,13 +35,10 @@ const aplicarContactoDelNegocio = async (venta: any) => {
     };
 };
 
-router.get('/', async (req, res) => {
+router.get('/', verificarToken, verificarRol(['SUPERADMIN', 'ADMINISTRADOR']), async (req: AuthRequest, res) => {
     try {
-        const socioId = req.query.socioId as string;
-        if (!socioId) return res.status(400).json({ mensaje: 'Falta ID de socio' });
-
         const socio = await prisma.socio.findUnique({
-            where: { id: socioId },
+            where: { id: req.socio.id },
             select: { negocioId: true }
         });
 

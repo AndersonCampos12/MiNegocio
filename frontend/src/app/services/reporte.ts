@@ -11,14 +11,7 @@ export class ReporteService {
     constructor(private http: HttpClient) { }
 
     obtenerMetricas(): Observable<any> {
-        const usuarioString = localStorage.getItem('usuario');
-        let socioId = '';
-
-        if (usuarioString) {
-            socioId = JSON.parse(usuarioString).id;
-        }
-
-        return this.http.get(`${this.apiUrl}?socioId=${socioId}`);
+        return this.http.get(this.apiUrl);
     }
 
     obtenerRecomendaciones(dias = 30, limite = 5): Observable<any> {

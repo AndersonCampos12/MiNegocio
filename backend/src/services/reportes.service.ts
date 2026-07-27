@@ -5,7 +5,7 @@ export class ReportesService {
 
         // 1. Sumamos el dinero total y contamos los tickets de venta de todo el negocio
         const agregaciones = await prisma.venta.aggregate({
-            where: { socio: { negocioId: negocioId } },
+            where: { negocioId },
             _sum: { total: true },
             _count: { id: true }
         });
@@ -22,7 +22,7 @@ export class ReportesService {
 
         // 3. Traemos el historial: las 5 ventas más recientes
         const ultimasVentas = await prisma.venta.findMany({
-            where: { socio: { negocioId: negocioId } },
+            where: { negocioId },
             orderBy: { creadoEn: 'desc' },
             take: 5,
             include: {
@@ -35,11 +35,31 @@ export class ReportesService {
             }
         });
 
+        const productosAgrupados = await prisma.detalleVenta.groupBy({
+            by: ['productoId'],
+            where: { venta: { negocioId } },
+            _sum: { cantidad: true },
+            orderBy: { _sum: { cantidad: 'desc' } },
+            take: 5
+        });
+        const productos = await prisma.producto.findMany({
+            where: { id: { in: productosAgrupados.map(item => item.productoId) } },
+            select: { id: true, nombre: true }
+        });
+        const productosPorId = new Map(productos.map(producto => [producto.id, producto]));
+
         // 4. Empaquetamos todo y lo mandamos listo al Frontend
         return {
             ingresosTotales: agregaciones._sum.total || 0,
             totalVentas: agregaciones._count.id || 0,
             alertasStock: productosBajoStock,
+            topProductos: productosAgrupados.flatMap(item => {
+                const producto = productosPorId.get(item.productoId);
+                return producto ? [{
+                    ...producto,
+                    cantidadVendida: item._sum.cantidad || 0
+                }] : [];
+            }),
 
             // Formateamos las ventas para que el HTML de Angular las dibuje fácil
             ultimasVentas: ultimasVentas.map(venta => ({

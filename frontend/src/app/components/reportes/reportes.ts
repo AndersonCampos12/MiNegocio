@@ -6,6 +6,7 @@ import { AdminLayout } from '../admin-layout/admin-layout';
 import { AuthService } from '../../services/auth';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ToastService } from '../../services/toast';
+import { obtenerMensajeHttp } from '../../utils/http-error';
 
 @Component({
   selector: 'app-reportes',
@@ -72,6 +73,7 @@ export class Reportes implements OnInit {
       error: (err) => {
         console.error('Error cargando reportes:', err);
         this.cargando = false;
+        this.toast.error(obtenerMensajeHttp(err, 'No se pudieron cargar los reportes.'));
         this.cdr.detectChanges();
       }
     });

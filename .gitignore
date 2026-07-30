@@ -31,3 +31,4 @@ yarn-error.log*
 **/.codex/
 
 backend/uploads/
+backend/.env.zip

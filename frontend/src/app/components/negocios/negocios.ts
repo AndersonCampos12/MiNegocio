@@ -27,6 +27,8 @@ export class Negocios implements OnInit, OnDestroy {
   guardando = false;
   filtroTexto = '';
   filtroEstado = '';
+  logoArchivo: File | null = null;
+  logoVistaPrevia: string | null = null;
 
   usuarioActual: any = null;
   rolActual: string | null = null;
@@ -130,6 +132,7 @@ export class Negocios implements OnInit, OnDestroy {
     this.negociosService.obtenerMiEmpresa().subscribe({
       next: (data) => {
         this.formulario = { ...data };
+        this.logoVistaPrevia = data.logoUrl || null;
         this.cdr.detectChanges(); // ← faltaba esto
       },
       error: (err) => this.toast.error(obtenerMensajeHttp(err, 'No fue posible cargar los datos de tu empresa.'))
@@ -141,6 +144,56 @@ export class Negocios implements OnInit, OnDestroy {
     this.formulario.slug = String(this.formulario.nombre ?? '')
       .toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  }
+
+  seleccionarLogo(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const archivo = input.files?.[0];
+    if (!archivo) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(archivo.type)) {
+      input.value = '';
+      return this.toast.warning('El logo debe estar en formato JPG, PNG o WEBP.');
+    }
+    if (archivo.size === 0 || archivo.size > 2 * 1024 * 1024) {
+      input.value = '';
+      return this.toast.warning('El logo debe ser válido y pesar máximo 2 MB.');
+    }
+
+    const lector = new FileReader();
+    lector.onload = () => {
+      const imagen = new Image();
+      imagen.onload = () => {
+        this.logoArchivo = archivo;
+        this.logoVistaPrevia = lector.result as string;
+        this.cdr.detectChanges();
+      };
+      imagen.onerror = () => {
+        input.value = '';
+        this.toast.error('El archivo seleccionado no contiene una imagen válida.');
+      };
+      imagen.src = lector.result as string;
+    };
+    lector.onerror = () => this.toast.error('No fue posible leer el logo seleccionado.');
+    lector.readAsDataURL(archivo);
+  }
+
+  private guardarLogoPendiente(negocioId: string, alCompletar: () => void) {
+    if (!this.logoArchivo) {
+      alCompletar();
+      return;
+    }
+    this.guardando = true;
+    this.negociosService.actualizarLogo(negocioId, this.logoArchivo).pipe(finalize(() => {
+      this.guardando = false;
+      this.cdr.detectChanges();
+    })).subscribe({
+      next: (respuesta: any) => {
+        this.logoArchivo = null;
+        this.logoVistaPrevia = respuesta.negocio?.logoUrl || this.logoVistaPrevia;
+        alCompletar();
+      },
+      error: (err) => this.toast.error(obtenerMensajeHttp(err, 'No fue posible guardar el logo.'))
+    });
   }
 
   guardar() {
@@ -172,12 +225,15 @@ export class Negocios implements OnInit, OnDestroy {
         this.guardando = false;
         this.cdr.detectChanges();
       })).subscribe({
-        next: () => {
-          this.toast.success('Datos de la empresa actualizados.');
-          if (this.esSuperadmin) {
-            this.cargarTodasLasEmpresas();
-            this.cerrarModal();
-          }
+        next: (respuesta: any) => {
+          const negocioId = respuesta.negocio?.id || this.formulario.id;
+          this.guardarLogoPendiente(negocioId, () => {
+            this.toast.success('Datos de la empresa actualizados.');
+            if (this.esSuperadmin) {
+              this.cargarTodasLasEmpresas();
+              this.cerrarModal();
+            }
+          });
         },
         error: (err) => this.toast.error(obtenerMensajeHttp(err, 'No fue posible actualizar la empresa.'))
       });

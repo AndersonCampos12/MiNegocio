@@ -106,9 +106,10 @@ app.get('/api/health', (req, res) => {
 app.use((error: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (!(error instanceof multer.MulterError)) return next(error);
 
+    const esLogo = error.field === 'logo';
     const mensaje = error.code === 'LIMIT_FILE_SIZE'
-        ? 'La imagen no debe superar los 5 MB.'
-        : 'La imagen debe tener formato JPG, PNG o WEBP.';
+        ? `La ${esLogo ? 'imagen del logo' : 'imagen'} no debe superar los ${esLogo ? '2' : '5'} MB.`
+        : `La ${esLogo ? 'imagen del logo' : 'imagen'} debe tener formato JPG, PNG o WEBP.`;
     res.status(400).json({ mensaje });
 });
 

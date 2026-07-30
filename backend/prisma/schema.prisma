@@ -44,6 +44,8 @@ model Negocio {
   plan      String           @default("MULTI")
   estado    EstadoNegocio    @default(PENDIENTE)
   creadoEn  DateTime         @default(now()) @map("creado_en")
+  logoUrl   String?          @map("logo_url")
+  logoStorageId String?      @map("logo_storage_id")
   socios    Socio[]
   productos Producto[] // ← Productos pertenecen al Negocio
   ventas    Venta[] // ← Ventas pertenecen al Negocio

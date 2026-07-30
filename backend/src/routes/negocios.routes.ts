@@ -2,8 +2,19 @@ import { Router, Response } from 'express';
 import { verificarToken, verificarRol, AuthRequest } from '../middlewares/auth.middleware';
 import { crearNegocioConAdmin } from '../services/negocios.service';
 import { prisma } from '../config/database';
+import multer from 'multer';
+import { PocketBaseStorageService } from '../services/pocketbase-storage.service';
 
 const router = Router();
+const storage = new PocketBaseStorageService();
+const subirLogo = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 2 * 1024 * 1024, files: 1 },
+    fileFilter: (_req, file, cb) => {
+        const permitido = ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype);
+        permitido ? cb(null, true) : cb(new multer.MulterError('LIMIT_UNEXPECTED_FILE', 'logo'));
+    }
+});
 
 // ==========================================
 // EXCLUSIVO SUPERADMIN
@@ -83,6 +94,40 @@ router.get('/mi-empresa', verificarToken, verificarRol(['ADMINISTRADOR']), async
         res.json(negocio);
     } catch (error) {
         res.status(500).json({ mensaje: 'Error al obtener los datos de la empresa' });
+    }
+});
+
+router.post('/:id/logo', verificarToken, verificarRol(['SUPERADMIN', 'ADMINISTRADOR']), subirLogo.single('logo'), async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        const id = String(req.params.id);
+        if (req.socio?.rol === 'ADMINISTRADOR' && id !== req.socio?.negocioId) {
+            res.status(403).json({ mensaje: 'No puedes modificar el logo de otra empresa.' });
+            return;
+        }
+        if (!req.file) {
+            res.status(400).json({ mensaje: 'Selecciona una imagen para el logo.' });
+            return;
+        }
+
+        const negocioActual = await prisma.negocio.findUnique({ where: { id } });
+        if (!negocioActual) {
+            res.status(404).json({ mensaje: 'Empresa no encontrada.' });
+            return;
+        }
+        const logo = await storage.guardarLogo(id, req.file, negocioActual.logoStorageId);
+        const negocio = await prisma.negocio.update({
+            where: { id },
+            data: { logoUrl: logo.url, logoStorageId: logo.registroId }
+        });
+        res.json({ mensaje: 'Logo actualizado correctamente.', negocio });
+    } catch (error: any) {
+        console.error('Error al guardar logo en PocketBase:', error);
+        const configuracion = error?.message === 'POCKETBASE_NOT_CONFIGURED';
+        res.status(configuracion ? 503 : 502).json({
+            mensaje: configuracion
+                ? 'El almacenamiento de logos no está configurado.'
+                : 'No fue posible guardar el logo en el almacenamiento.'
+        });
     }
 });
 

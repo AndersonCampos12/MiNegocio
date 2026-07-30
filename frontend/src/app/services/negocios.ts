@@ -30,4 +30,10 @@ export class NegociosService {
     actualizarEmpresa(id: string, datos: any): Observable<any> {
         return this.http.put(`${this.apiUrl}/${id}`, datos, { headers: this.getHeaders() });
     }
+
+    actualizarLogo(id: string, archivo: File): Observable<any> {
+        const datos = new FormData();
+        datos.append('logo', archivo);
+        return this.http.post(`${this.apiUrl}/${id}/logo`, datos, { headers: this.getHeaders() });
+    }
 }

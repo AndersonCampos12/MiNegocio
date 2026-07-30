@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15-alpine
@@ -26,5 +24,18 @@ services:
     depends_on:
       - postgres
 
+  pocketbase:
+    build:
+      context: ./pocketbase
+      args:
+        POCKETBASE_VERSION: 0.39.9
+    container_name: minegocio_pocketbase
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8090:8090"
+    volumes:
+      - pocketbase_data:/pb/pb_data
+
 volumes:
   postgres_data:
+  pocketbase_data:

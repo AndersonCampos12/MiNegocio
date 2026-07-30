@@ -174,6 +174,26 @@
             <div class="enterprise-profile-header"><div><p class="text-sm text-blue-100">Configuración de empresa</p><h2>{{ formulario.nombre || 'Tu empresa' }}</h2><p>Actualiza la información que identifica a tu negocio.</p></div><span [ngClass]="{'bg-emerald-100 text-emerald-700': formulario.estado === 'ACTIVO', 'bg-amber-100 text-amber-700': formulario.estado === 'PENDIENTE', 'bg-red-100 text-red-700': formulario.estado === 'BLOQUEADO'}">{{ formulario.estado }}</span></div>
             <div class="p-8">
             <div class="space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-4 pb-5 border-b border-gray-100">
+                    <div class="w-20 h-20 rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden flex items-center justify-center shrink-0">
+                        @if (logoVistaPrevia) {
+                        <img [src]="logoVistaPrevia" alt="Logo de la empresa" class="w-full h-full object-contain bg-white">
+                        } @else {
+                        <span class="text-2xl font-bold text-gray-300">{{ (formulario.nombre || 'N').charAt(0) }}</span>
+                        }
+                    </div>
+                    <div>
+                        <label for="logo-negocio" class="inline-flex px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer">
+                            {{ logoVistaPrevia ? 'Cambiar logo' : 'Subir logo' }}
+                        </label>
+                        <input id="logo-negocio" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                            (change)="seleccionarLogo($event)" class="sr-only">
+                        <p class="text-xs text-gray-500 mt-2">JPG, PNG o WEBP. Máximo 2 MB.</p>
+                        @if (logoArchivo) {
+                        <p class="text-xs text-blue-600 mt-1">Se guardará al actualizar la información.</p>
+                        }
+                    </div>
+                </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Nombre Comercial</label>
                     <input type="text" [(ngModel)]="formulario.nombre" maxlength="100"
